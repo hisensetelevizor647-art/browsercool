@@ -1,0 +1,3758 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Oleksandr Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="Gemini_Generated_Image_enpjmsenpjmsenpj.png" />
+    <script src="https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        :root {
+            --font-main: 'Inter', sans-serif;
+            --bg-body: #fff;
+            --bg-glass: rgba(255, 255, 255, 0.85);
+            --bg-glass-solid: rgba(255, 255, 255, 0.95);
+            --border-glass: rgba(0, 0, 0, 0.08);
+            --text-main: #000;
+            --text-secondary: #666;
+            --surface: #f3f3f3;
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --radius-xl: 20px;
+            --radius-lg: 12px;
+            --radius-md: 10px;
+            --radius-sm: 8px;
+            --accent: #000;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body.dark {
+            --bg-body: #0a0a0a;
+            --bg-glass: rgba(20, 20, 20, 0.85);
+            --bg-glass-solid: rgba(20, 20, 20, 0.95);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-main: #fff;
+            --text-secondary: #a0a0a0;
+            --surface: #1a1a1a;
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --accent: #fff;
+            --success: #34d399;
+            --error: #f87171;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+            touch-action: manipulation;
+        }
+
+        .glass {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            box-shadow: var(--shadow-glass);
+        }
+
+        button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            color: inherit;
+            outline: none;
+            transition: all .2s;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: transparent;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            width: 100%;
+            pointer-events: none;
+            /* Layout only, clicks pass through */
+        }
+
+        .header-left,
+        .header-right {
+            pointer-events: auto;
+            /* Re-enable clicks */
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 999px;
+            /* Pill shape */
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .logo-icon-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .model-switcher {
+            display: flex;
+            background: var(--surface);
+            padding: 3px;
+            border-radius: 10px;
+            gap: 3px;
+        }
+
+        .model-btn {
+            padding: 5px 10px;
+            border-radius: 7px;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .model-btn.active {
+            background: var(--accent);
+            color: var(--bg-body);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .header-action-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-glass-solid);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            color: var(--text-main);
+        }
+
+        .header-back-btn {
+            background: var(--accent);
+            color: var(--bg-body);
+            border-radius: var(--radius-md);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all .2s;
+        }
+
+        .header-action-btn:hover {
+            background: var(--surface);
+            transform: scale(1.05);
+        }
+
+        .main-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem;
+            padding-bottom: 100px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 700px;
+            z-index: 100;
+            transition: all .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .input-container.collapsed {
+            width: 55px;
+            left: auto;
+            right: 15px;
+            transform: translateX(0);
+            bottom: 20px;
+        }
+
+        .input-bar {
+            background: var(--bg-glass-solid);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-glass);
+            border-radius: 999px;
+            padding: .5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            height: 72px;
+            width: 100%;
+        }
+
+        .input-container.collapsed .input-bar {
+            padding: 0;
+            justify-content: center;
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        .input-actions-left {
+            display: flex;
+            align-items: center;
+            gap: .25rem;
+        }
+
+        .input-container.collapsed .input-actions-left,
+        .input-container.collapsed .input-field,
+        .input-container.collapsed .send-btn-wrapper {
+            display: none;
+        }
+
+        .collapsed-icon {
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg-body);
+        }
+
+        .input-container.collapsed .collapsed-icon {
+            display: flex;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-main);
+        }
+
+        .tools-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: background 0.2s;
+        }
+
+        .tools-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark .tools-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .pro-selector {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .pro-selector:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        body.dark .pro-selector:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .ocr-loading {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: var(--bg-body);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 102;
+        }
+
+        body.dark .action-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .input-field {
+            flex: 1;
+            height: 100%;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            padding: 0 .5rem;
+            color: var(--text-main);
+            font-size: 16px;
+            /* Prevent zoom on iOS */
+        }
+
+        .input-field::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--accent);
+            color: var(--bg-body);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .attachment-menu,
+        .mode-menu {
+            position: absolute;
+            bottom: 70px;
+            left: 0;
+            background: var(--bg-glass-solid);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: .5rem;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+            transition: all .2s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(20px);
+            min-width: 160px;
+            z-index: 101;
+        }
+
+        .attachment-menu.active,
+        .mode-menu.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .attach-item,
+        .mode-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .75rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: .9rem;
+            color: var(--text-main);
+            width: 100%;
+        }
+
+        .attach-item:hover,
+        .mode-item:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        body.dark .attach-item:hover,
+        body.dark .mode-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+
+        .loading-icon-wrapper {
+            width: 56px;
+            height: 56px;
+            color: var(--text-main);
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+
+            0%,
+            100% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+        }
+
+        .test-result-card {
+            background: var(--bg-body);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-glass);
+            animation: slideUp .4s ease-out;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        body.dark .test-result-card {
+            background: var(--surface);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .test-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--surface);
+        }
+
+        .question-block {
+            margin-bottom: 1.5rem;
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .option-item {
+            padding: 0.875rem;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            margin-bottom: .5rem;
+            cursor: pointer;
+            background: var(--surface);
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark .option-item {
+            background: #2a2a2a;
+        }
+
+        body.dark .option-item:hover {
+            background: #3a3a3a;
+        }
+
+        .option-item.selected-correct {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .option-item.selected-wrong {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            padding: .75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-body);
+        }
+
+        body.dark .btn-primary {
+            background: var(--accent);
+            color: var(--bg-body);
+        }
+
+        .btn-secondary {
+            border: 1px solid var(--border-glass);
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            height: 220px;
+            margin-bottom: 1.25rem;
+            cursor: pointer;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform .6s;
+            transform-style: preserve-3d;
+            border-radius: var(--radius-lg);
+        }
+
+        .flashcard-container.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front,
+        .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+            background: var(--bg-body);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        body.dark .flashcard-front,
+        body.dark .flashcard-back {
+            background: var(--surface);
+        }
+
+        .flashcard-back {
+            background: var(--accent);
+            color: var(--bg-body);
+            transform: rotateY(180deg);
+        }
+
+        body.dark .flashcard-back {
+            background: var(--accent);
+            color: var(--bg-body);
+        }
+
+        .suggestion-bubble {
+            background: var(--surface);
+            border-radius: 50px;
+            padding: .75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            font-size: .9rem;
+            cursor: pointer;
+            width: max-content;
+            max-width: 90%;
+            margin-bottom: 0.5rem;
+        }
+
+        .suggestion-bubble:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark .suggestion-bubble:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+
+        /* Camera modal (styled cool + BW controls) */
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 400;
+            padding: 1rem;
+        }
+
+        .camera-content {
+            width: 100%;
+            max-width: 920px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 250, 250, 0.94));
+            border-radius: 20px;
+            padding: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .camera-preview {
+            width: 100%;
+            height: 460px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .camera-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 8px
+        }
+
+        .camera-btn {
+            padding: .6rem .9rem;
+            border-radius: 12px;
+            background: #000;
+            color: #fff;
+            border: none;
+            font-weight: 700;
+            cursor: pointer
+        }
+
+        .camera-filter-btn {
+            padding: .5rem .75rem;
+            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border-glass);
+            cursor: pointer
+        }
+
+        .camera-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .camera-thumb {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f7f7f7;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .camera-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover
+        }
+
+        .settings-modal.hidden {
+            display: none;
+        }
+
+        .settings-content {
+            background: var(--bg-glass-solid);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(20px);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .settings-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .settings-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .settings-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: .75rem;
+            font-size: .9rem;
+        }
+
+        .language-switcher {
+            display: flex;
+            gap: .5rem;
+            padding: .25rem;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 8px;
+        }
+
+        body.dark .language-switcher {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: .5rem;
+            background: transparent;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: .875rem;
+        }
+
+        .lang-btn.active {
+            background: var(--accent);
+            color: var(--bg-body);
+        }
+
+        .toggle-container input {
+            appearance: none;
+            width: 44px;
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 99px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle-container input:checked {
+            background: var(--accent);
+        }
+
+        .toggle-container input::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform .3s;
+        }
+
+        .toggle-container input:checked::after {
+            transform: translateX(20px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-body);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .splash-logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 1.5rem;
+            border-radius: 20px;
+        }
+
+        .splash-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .splash-feature {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem;
+            margin: .4rem 0;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            max-width: 350px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .splash-btn {
+            margin-top: 1.5rem;
+            padding: 1rem 2.5rem;
+            background: var(--accent);
+            color: var(--bg-body);
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Test Creation Progress */
+        .test-creation-progress {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem auto;
+            max-width: 700px;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            animation: slideUpFade 0.5s ease;
+            flex-wrap: wrap;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .progress-cancel-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-glass);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .progress-cancel-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark .progress-cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Additional screens */
+        .screen {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem;
+            padding-bottom: 100px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .back-to-chat-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--accent);
+            color: var(--bg-body);
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .back-to-chat-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .tests-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .test-card {
+            padding: 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-card-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        body.dark .test-card-icon {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .test-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding-right: 30px;
+        }
+
+        .test-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--accent);
+            color: var(--bg-body);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .view-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 30px;
+            height: 30px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #ef4444;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
+
+        body.dark .delete-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        body.dark .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            padding: 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            html {
+                font-size: 13px;
+            }
+
+            .app-header {
+                padding: 0.6rem 0.8rem;
+            }
+
+            .logo {
+                font-size: 0.9rem;
+            }
+
+            .logo-icon-img {
+                width: 28px;
+                height: 28px;
+            }
+
+            .model-switcher {
+                padding: 2px;
+            }
+
+            .model-btn {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+
+            .header-action-btn {
+                width: 36px;
+                height: 36px;
+            }
+
+            .main-scroll-area {
+                padding: 0.5rem;
+                padding-bottom: 90px;
+            }
+
+            .input-container {
+                width: 97%;
+                bottom: 10px;
+            }
+
+            .input-bar {
+                height: 56px;
+            }
+
+            .action-btn {
+                width: 36px;
+                height: 36px;
+            }
+
+            .send-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .test-result-card {
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            .test-title {
+                font-size: 1.2rem;
+            }
+
+            .question-block {
+                margin-bottom: 1.25rem;
+            }
+
+            .option-item {
+                padding: 0.75rem;
+                min-height: 50px;
+            }
+
+            .flashcard-container {
+                height: 200px;
+            }
+
+            .flashcard-front,
+            .flashcard-back {
+                padding: 1.25rem;
+                font-size: 1rem;
+            }
+
+            .suggestion-bubble {
+                padding: 0.75rem 1.25rem;
+                font-size: 0.85rem;
+            }
+
+            .splash-logo {
+                width: 90px;
+                height: 90px;
+            }
+
+            .splash-title {
+                font-size: 1.5rem;
+            }
+
+            .splash-feature {
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .tests-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1.5rem;
+                display: grid;
+                width: 100%;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .tests-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 769px) {
+            .tests-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        /* Prevent text selection on interactive elements */
+        .suggestion-bubble,
+        .option-item,
+        .test-card,
+        .flashcard-container {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Improve touch targets */
+        .option-item,
+        .attach-item,
+        .mode-item,
+        .suggestion-bubble {
+            min-height: 44px;
+        }
+
+        /* Mobile Optimization for Prompt Panel */
+        @media (max-width: 600px) {
+            .input-container {
+                width: 98%;
+                bottom: 8px;
+            }
+
+            .input-bar {
+                position: relative;
+                flex-direction: column;
+                height: auto;
+                padding: 10px 12px;
+                gap: 8px;
+                border-radius: 20px;
+            }
+
+            /* Input field row - on top */
+            .input-field {
+                width: 100%;
+                font-size: 15px;
+                padding: 8px 10px;
+                background: var(--surface);
+                border-radius: 12px;
+            }
+
+            /* Actions row - below input */
+            .input-actions-left {
+                justify-content: flex-start;
+                gap: 6px;
+            }
+
+            .send-btn-wrapper {
+                gap: 6px !important;
+            }
+
+            .tools-btn span {
+                display: none;
+            }
+
+            .tools-btn {
+                padding: 6px;
+                width: 36px;
+                height: 36px;
+                justify-content: center;
+            }
+
+            .pro-selector {
+                padding: 4px 8px;
+                font-size: 10px;
+                background: var(--bg-glass);
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--border-glass);
+                border-radius: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+
+            .action-btn,
+            .send-btn {
+                width: 34px !important;
+                height: 34px !important;
+            }
+
+            .logo span {
+                display: none;
+            }
+
+            /* Collapsed state for mobile */
+            .input-container.collapsed {
+                width: 50px;
+                right: 12px;
+                bottom: 12px;
+            }
+
+            .input-container.collapsed .input-bar {
+                padding: 0;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+            }
+        }
+
+        .ai-mode-menu {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            right: 0;
+            background: var(--bg-glass-solid);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 8px;
+            width: 220px;
+            max-height: min(70vh, 420px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .ai-mode-menu.active {
+            display: flex;
+            animation: menuAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .ai-mode-item {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            text-align: left;
+            color: var(--text-main);
+        }
+
+        .ai-mode-item:hover {
+            background: var(--bg-glass);
+        }
+
+        .ai-mode-item.active {
+            background: var(--accent);
+            color: var(--bg-body);
+        }
+
+        .ai-mode-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .ai-mode-desc {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .ai-old-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 8px 10px 6px;
+            margin-top: 4px;
+            border-top: 1px dashed var(--border-glass);
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        .ai-old-toggle:hover {
+            background: var(--bg-glass);
+        }
+
+        .ai-old-toggle svg {
+            transition: transform 0.2s ease;
+        }
+
+        .ai-old-toggle[aria-expanded="true"] svg {
+            transform: rotate(180deg);
+        }
+
+        .ai-old-group {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ai-old-group.open {
+            display: flex;
+        }
+
+        @keyframes menuAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .ai-mode-menu {
+                width: 200px;
+                right: -10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="splash-screen" id="splash-screen">
+        <img src="Gemini_Generated_Image_enpjmsenpjmsenpj.png" alt="Logo" class="splash-logo">
+        <h1 class="splash-title" data-i18n="app_title">Oleksandr Test</h1>
+        <p style="margin-bottom:1.5rem;color:var(--text-secondary)" data-i18n="splash_desc">Ваш AI асистент для
+            створення тестів</p>
+        <div class="splash-feature">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span data-i18n="splash_feature_tests">Тести з вибором відповіді</span>
+        </div>
+        <div class="splash-feature">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m21.21 15.89A10 10 0 1 1 8 2.83" />
+                <path d="M22 12A10 10 0 0 0 12 2v10z" />
+            </svg>
+            <span data-i18n="splash_feature_cards">Картки</span>
+        </div>
+        <div class="splash-feature">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span data-i18n="splash_feature_photo">Фотографія</span>
+        </div>
+        <div class="splash-feature">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <span data-i18n="splash_feature_analytics">Аналітика</span>
+        </div>
+        <div class="splash-language-selector" style="display:flex; gap:12px; margin-bottom:24px;">
+            <button class="lang-btn-splash" onclick="selectSplashLanguage('uk')"
+                style="padding:8px 16px; border-radius:20px; border:1px solid rgba(0,0,0,0.1); background:white; cursor:pointer; font-weight:500;">UA
+                🇺🇦</button>
+            <button class="lang-btn-splash" onclick="selectSplashLanguage('sk')"
+                style="padding:8px 16px; border-radius:20px; border:1px solid rgba(0,0,0,0.1); background:white; cursor:pointer; font-weight:500;">SK
+                🇸🇰</button>
+            <button class="lang-btn-splash" onclick="selectSplashLanguage('en')"
+                style="padding:8px 16px; border-radius:20px; border:1px solid rgba(0,0,0,0.1); background:white; cursor:pointer; font-weight:500;">EN
+                🇺🇸</button>
+        </div>
+        <button class="splash-btn"
+            onclick="document.getElementById('splash-screen').style.display='none'; document.getElementById('input-container').classList.remove('hidden');"
+            data-i18n="start_button">Почати</button>
+    </div>
+
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon-img"
+                    style="background:var(--accent); display:flex; align-items:center; justify-content:center; border-radius:8px; width:32px; height:32px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-badge-check-icon lucide-badge-check">
+                        <path
+                            d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
+                </div>
+                <span data-i18n="app_title">Oleksandr Test</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="header-action-btn" id="library-btn" data-i18n-title="library_button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+            </button>
+            <button class="header-action-btn" id="analytics-btn" data-i18n-title="analytics_button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+            </button>
+            <button class="header-action-btn" id="settings-btn" data-i18n-title="settings_button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </button>
+            <a href="index.html" class="header-back-btn" title="Back to chat">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-house-icon lucide-house">
+                    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                    <path
+                        d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- Screens -->
+    <main class="screen active" id="screen-create">
+        <div class="main-scroll-area" id="main-container">
+            <div id="start-placeholder"
+                style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:1rem;opacity:0.8">
+                <div class="suggestion-bubble" onclick="setPromptAndSend(translations[currentLang].suggestion_file)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <span data-i18n="suggestion_file">Створи тест з файлу</span>
+                </div>
+                <div class="suggestion-bubble" onclick="setPromptAndSend(translations[currentLang].suggestion_analyze)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <span data-i18n="suggestion_analyze">Аналізуй документ</span>
+                </div>
+                <div class="suggestion-bubble" onclick="setPromptAndSend(translations[currentLang].suggestion_teach)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    <span data-i18n="suggestion_teach">Навчи мене через тест</span>
+                </div>
+            </div>
+            <div id="content-area"></div>
+            <div class="test-creation-progress hidden" id="test-creation-progress">
+                <div class="loading-icon-wrapper">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                    </svg>
+                </div>
+                <div class="progress-text" id="progress-text">Створюємо ваш тест...</div>
+                <button class="progress-cancel-btn" id="progress-cancel-btn" data-i18n="cancel_btn">Скасувати</button>
+            </div>
+        </div>
+    </main>
+
+    <main class="screen" id="screen-library">
+        <div class="main-scroll-area">
+            <button class="back-to-chat-btn" onclick="showScreen('create')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                <span data-i18n="back_to_chat">Повернутися до чату</span>
+            </button>
+            <h2 style="margin-bottom: 1.25rem;">Мої тести</h2>
+            <div class="tests-grid" id="tests-grid">
+                <!-- Tests will be dynamically added here -->
+            </div>
+            <div class="empty-state hidden" id="library-empty">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+                <h3 data-i18n="library_empty_title">Немає збережених тестів</h3>
+                <p data-i18n="library_empty_desc">Створіть свій перший тест, щоб він з'явився тут</p>
+            </div>
+        </div>
+    </main>
+
+    <main class="screen" id="screen-analytics">
+        <div class="main-scroll-area">
+            <button class="back-to-chat-btn" onclick="showScreen('create')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                <span data-i18n="back_to_chat">Повернутися до чату</span>
+            </button>
+            <h2 style="margin-bottom: 1.25rem;">Аналітика</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-tests-count">0</div>
+                    <div class="stat-label">Тестів створено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-questions-count">0</div>
+                    <div class="stat-label">Питань створено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-avg-score">-</div>
+                    <div class="stat-label">Середній бал</div>
+                </div>
+            </div>
+            <div class="empty-state" id="analytics-empty">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <h3 data-i18n="analytics_empty_title">Поки що немає даних</h3>
+                <p data-i18n="analytics_empty_desc">Створіть тести, щоб побачити статистику</p>
+            </div>
+        </div>
+    </main>
+
+    <div class="input-container hidden" id="input-container">
+        <div class="attachment-menu" id="attachment-menu">
+            <button class="attach-item" onclick="triggerFileUpload('.txt,.doc,.docx,.pdf')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span data-i18n="attach_doc">Документ</span>
+            </button>
+            <button class="attach-item" onclick="openCamera()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                </svg>
+                <span data-i18n="attach_cam">Зображення</span>
+            </button>
+        </div>
+        <div class="mode-menu" id="mode-menu">
+            <button class="mode-item" onclick="setMode('multiple-choice')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                <span data-i18n="mode_test">Тест</span>
+            </button>
+            <button class="mode-item" onclick="setMode('flashcards')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m21.21 15.89A10 10 0 1 1 8 2.83" />
+                    <path d="M22 12A10 10 0 0 0 12 2v10z" />
+                </svg>
+                <span data-i18n="mode_cards">Картки</span>
+            </button>
+            <button class="mode-item" onclick="setMode('fill-in')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                <span data-i18n="mode_fill">Вписування</span>
+            </button>
+            <button class="mode-item" onclick="setMode('code')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span data-i18n="mode_code">Код</span>
+            </button>
+        </div>
+        <div class="ai-mode-menu" id="ai-mode-menu">
+            <button class="ai-mode-item active" id="ai-item-pro-3" data-mode="pro-3" onclick="setAiModel('pro-3')">
+                <span class="ai-mode-title" data-i18n="model_pro3">Pro 3.0</span>
+                <span class="ai-mode-desc" data-i18n="model_desc_pro3">Advanced 3.0 mode</span>
+            </button>
+            <button class="ai-mode-item" id="ai-item-fast-3" data-mode="fast-3" onclick="setAiModel('fast-3')">
+                <span class="ai-mode-title" data-i18n="model_fast3">Fast 3.0</span>
+                <span class="ai-mode-desc" data-i18n="model_desc_fast3">Fast and responsive mode</span>
+            </button>
+            <button class="ai-mode-item" id="ai-item-thinking-3" data-mode="thinking-3" onclick="setAiModel('thinking-3')">
+                <span class="ai-mode-title" data-i18n="model_thinking3">Thinking 3.0</span>
+                <span class="ai-mode-desc" data-i18n="model_desc_thinking3">Deeper analysis mode</span>
+            </button>
+            <button class="ai-old-toggle" id="ai-old-toggle" type="button" aria-expanded="false" onclick="toggleOldAiModels(event)">
+                <span data-i18n="old_models_toggle">Use old modelss</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+            </button>
+            <div class="ai-old-group" id="ai-old-group">
+                <button class="ai-mode-item" id="ai-item-pro" data-mode="pro" onclick="setAiModel('pro')">
+                    <span class="ai-mode-title" data-i18n="model_pro">Pro</span>
+                    <span class="ai-mode-desc" data-i18n="model_desc_pro">Advanced & Strategic</span>
+                </button>
+                <button class="ai-mode-item" id="ai-item-fast" data-mode="fast" onclick="setAiModel('fast')">
+                    <span class="ai-mode-title" data-i18n="model_fast">Fast</span>
+                    <span class="ai-mode-desc" data-i18n="model_desc_fast">Fast & Efficient</span>
+                </button>
+            </div>
+        </div>
+        <div class="ocr-loading" id="ocr-status">
+            Scanning document...
+        </div>
+        <div class="input-bar glass" id="input-bar">
+            <div class="collapsed-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099 .092 10 10 0 1 0-4.777-4.719" />
+                </svg>
+            </div>
+            <input type="text" class="input-field" id="user-input" placeholder="Create test with OleksandrAi"
+                autocomplete="off">
+            <div class="input-controls">
+                <div class="input-actions-left">
+                    <button class="action-btn" id="attach-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
+                    <button class="tools-btn" id="mode-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                            class="" style="width: 18px; height: 18px;">
+                            <path
+                                d="M14.5 4.9999C13.9696 4.9999 13.4609 5.21061 13.0858 5.58568C12.7107 5.96076 12.5 6.46946 12.5 6.9999C12.5 7.53033 12.7107 8.03904 13.0858 8.41411C13.4609 8.78918 13.9696 8.9999 14.5 8.9999C15.0304 8.9999 15.5391 8.78918 15.9142 8.41411C16.2893 8.03904 16.5 7.53033 16.5 6.9999C16.5 6.46946 16.2893 5.96076 15.9142 5.58568C15.5391 5.21061 15.0304 4.9999 14.5 4.9999ZM10.626 5.9999C10.8484 5.14166 11.3496 4.38158 12.0507 3.83897C12.7519 3.29636 13.6134 3.00195 14.5 3.00195C15.3866 3.00195 16.2481 3.29636 16.9493 3.83897C17.6504 4.38158 18.1516 5.14166 18.374 5.9999H20C20.2652 5.9999 20.5196 6.10525 20.7071 6.29279C20.8946 6.48033 21 6.73468 21 6.9999C21 7.26511 20.8946 7.51947 20.7071 7.707C20.5196 7.89454 20.2652 7.9999 20 7.9999H18.374C18.1516 8.85814 17.6504 9.61822 16.9493 10.1608C16.2481 10.7034 15.3866 10.9978 14.5 10.9978C13.6134 10.9978 12.7519 10.7034 12.0507 10.1608C11.3496 9.61822 10.8484 8.85814 10.626 7.9999H4C3.73478 7.9999 3.48043 7.89454 3.29289 7.707C3.10536 7.51947 3 7.26511 3 6.9999C3 6.73468 3.10536 6.48033 3.29289 6.29279C3.48043 6.10525 3.73478 5.9999 4 5.9999H10.626ZM9.5 14.9999C8.96957 14.9999 8.46086 15.2106 8.08579 15.5857C7.71071 15.9608 7.5 16.4695 7.5 16.9999C7.5 17.5303 7.71071 18.039 8.08579 18.4141C8.46086 18.7892 8.96957 18.9999 9.5 18.9999C10.0304 18.9999 10.5391 18.7892 10.9142 18.4141C11.2893 18.039 11.5 17.5303 11.5 16.9999C11.5 16.4695 11.2893 15.9608 10.9142 15.5857C10.5391 15.2106 10.0304 14.9999 9.5 14.9999ZM5.626 15.9999C5.84844 15.1417 6.34957 14.3816 7.05074 13.839C7.7519 13.2964 8.6134 13.002 9.5 13.002C10.3866 13.002 11.2481 13.2964 11.9493 13.839C12.6504 14.3816 13.1516 15.1417 13.374 15.9999H20C20.2652 15.9999 20.5196 16.1053 20.7071 16.2928C20.8946 16.4803 21 16.7347 21 16.9999C21 17.2651 20.8946 17.5195 20.7071 17.707C20.5196 17.8945 20.2652 17.9999 20 17.9999H13.374C13.1516 18.8581 12.6504 19.6182 11.9493 20.1608C11.2481 20.7034 10.3866 20.9978 9.5 20.9978C8.6134 20.9978 7.7519 20.7034 7.05074 20.1608C6.34957 19.6182 5.84844 18.8581 5.626 17.9999H4C3.73478 17.9999 3.48043 17.8945 3.29289 17.707C3.10536 17.5195 3 17.2651 3 16.9999C3 16.7347 3.10536 16.4803 3.29289 16.2928C3.48043 16.1053 3.73478 15.9999 4 15.9999H5.626Z"
+                                fill="currentColor"></path>
+                        </svg>
+                        <span>Tools</span>
+                    </button>
+                </div>
+                <div class="send-btn-wrapper" style="display:flex; align-items:center; gap: 8px;">
+                    <div class="pro-selector" id="ai-mode-toggle">
+                        <span id="current-ai-label">Pro 3.0</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                    <button class="send-btn" id="send-btn"
+                        style="background:transparent; color: var(--text-main); width: 40px; height:40px;">
+                        <svg id="mic-icon" width="24" height="24" viewBox="144 144 512 512"
+                            xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                            <g>
+                                <path
+                                    d="m4e2 511.29c26.578-.039062 52.055-10.613 70.848-29.406 18.793-18.797 29.367-44.273 29.41-70.852v-132.45c0-35.82-19.109-68.918-50.129-86.828-31.02-17.91-69.238-17.91-100.26.0-31.023 17.91-50.129 51.008-50.129 86.828v132.45c.039062 26.578 10.613 52.055 29.406 70.852 18.793 18.793 44.273 29.367 70.852 29.406zm-70.031-232.71c0-25.02 13.348-48.141 35.016-60.648 21.668-12.512 48.363-12.512 70.027.0 21.668 12.508 35.016 35.629 35.016 60.648v132.45c0 25.02-13.348 48.137-35.016 60.648-21.664 12.508-48.359 12.508-70.027.0-21.668-12.512-35.016-35.629-35.016-60.648z" />
+                                <path
+                                    d="m415.11 563.38v58.293h-30.23V563.38c-77.434-6.5977-138.14-63.527-138.14-132.6h30.23c0 56.828 55.418 103.03 123.03 103.03 67.609.0 123.03-46.199 123.03-103.03h30.23c-.003907 69.074-60.715 126-138.15 132.6z" />
+                            </g>
+                        </svg>
+                        <svg id="arrow-icon" class="hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m5 12 7-7 7 7" />
+                            <path d="M12 19V5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-modal hidden" id="settings-modal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h3 data-i18n="settings_title">Налаштування</h3>
+                <button id="close-settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-section">
+                <label data-i18n="lang_label">Мова</label>
+                <div class="language-switcher">
+                    <button class="lang-btn" data-lang="uk">UA</button>
+                    <button class="lang-btn active" data-lang="sk">SK</button>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <label data-i18n="theme_label">Темна тема</label>
+                <div class="toggle-container">
+                    <input type="checkbox" id="theme-toggle">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="camera-modal hidden" id="camera-modal">
+        <div class="camera-content">
+            <div class="camera-preview">
+                <video id="camera-video" autoplay playsinline></video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+            </div>
+            <div class="camera-sidebar">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 data-i18n="camera_title">Камера</h3>
+                    <button id="close-camera" class="header-action-btn" title="Close">✕</button>
+                </div>
+
+                <div class="camera-thumb" id="camera-thumb">
+                    <span data-i18n="camera_no_preview">Немає прев'ю</span>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="camera-filter-btn" data-filter="none">Normal</button>
+                    <button class="camera-filter-btn" data-filter="grayscale(100%)">B&amp;W</button>
+                    <button class="camera-filter-btn" data-filter="contrast(120%)">Contrast</button>
+                    <button class="camera-filter-btn" data-filter="sepia(60%)">Sepia</button>
+                </div>
+
+                <div class="camera-actions">
+                    <button class="camera-btn" id="capture-photo" data-i18n="capture_button">Capture</button>
+                    <a id="download-photo" class="camera-btn hidden" download="photo.png"
+                        data-i18n="download_button">Download</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" style="display:none">
+
+    <script>
+        // DOM Elements
+        const mainContainer = document.getElementById('main-container');
+        const inputContainer = document.getElementById('input-container');
+        const userInput = document.getElementById('user-input');
+        const contentArea = document.getElementById('content-area');
+        const attachBtn = document.getElementById('attach-btn');
+        const modeBtn = document.getElementById('mode-btn');
+        const attachmentMenu = document.getElementById('attachment-menu');
+        const modeMenu = document.getElementById('mode-menu');
+        const sendBtn = document.getElementById('send-btn');
+        const micIcon = document.getElementById('mic-icon');
+        const arrowIcon = document.getElementById('arrow-icon');
+        const aiModeMenu = document.getElementById('ai-mode-menu');
+        const aiModeItems = document.querySelectorAll('.ai-mode-item');
+        const aiOldGroup = document.getElementById('ai-old-group');
+        const aiOldToggle = document.getElementById('ai-old-toggle');
+        const fileInput = document.getElementById('file-input');
+        const startPlaceholder = document.getElementById('start-placeholder');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettings = document.getElementById('close-settings');
+        const themeToggle = document.getElementById('theme-toggle');
+        const libraryBtn = document.getElementById('library-btn');
+        const analyticsBtn = document.getElementById('analytics-btn');
+        const testCreationProgress = document.getElementById('test-creation-progress');
+        const progressText = document.getElementById('progress-text');
+        const progressCancelBtn = document.getElementById('progress-cancel-btn');
+        const testsGrid = document.getElementById('tests-grid');
+        const libraryEmpty = document.getElementById('library-empty');
+        const statTestsCount = document.getElementById('stat-tests-count');
+        const statQuestionsCount = document.getElementById('stat-questions-count');
+        const statAvgScore = document.getElementById('stat-avg-score');
+        const analyticsEmpty = document.getElementById('analytics-empty');
+        const ocrStatus = document.getElementById('ocr-status');
+        const aiModeToggle = document.getElementById('ai-mode-toggle');
+        const currentAiLabel = document.getElementById('current-ai-label');
+
+        // Screens
+        const screens = document.querySelectorAll('.screen');
+        const screenCreate = document.getElementById('screen-create');
+        const screenLibrary = document.getElementById('screen-library');
+        const screenAnalytics = document.getElementById('screen-analytics');
+
+        // App State
+        let currentMode = 'multiple-choice';
+        let isGenerating = false;
+        let attachedFileContext = '';
+        let currentLang = 'sk';
+        let selectedAiMode = 'pro-3';
+        let attachedImageBase64 = null;
+        let savedTests = JSON.parse(localStorage.getItem('savedTests') || '[]');
+        let testResults = JSON.parse(localStorage.getItem('testResults') || '[]');
+
+        // API Configuration
+        const POLLINATIONS_API_KEY = (window.olewser && window.olewser._settings && window.olewser._settings.pollinationsApiKey) || '';
+        const POLLINATIONS_API_ENDPOINT = 'https://gen.pollinations.ai/v1/chat/completions';
+        const NVIDIA_API_KEY = (window.olewser && window.olewser._settings && window.olewser._settings.nvidiaApiKey) || '';
+        const NVIDIA_INVOKE_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+        const NVIDIA_FAST3_MODEL = 'qwen/qwen3.5-397b-a17b';
+
+        // Translations
+        const translations = {
+            sk: {
+                settings_title: 'Nastavenia',
+                lang_label: 'Jazyk',
+                theme_label: 'Tmavý režim',
+                suggestion_file: 'Vytvoriť test zo súboru',
+                suggestion_analyze: 'Analyzovať dokument',
+                suggestion_teach: 'Nauč ma cez test',
+                attach_doc: 'Dokument',
+                attach_cam: 'Fotoaparát',
+                mode_test: 'Test',
+                mode_cards: 'Kartičky',
+                mode_fill: 'Vyplňovačka',
+                placeholder_test: 'O čom vytvoriť test?',
+                placeholder_cards: 'Téma pre kartičky...',
+                placeholder_fill: 'Text na doplnenie...',
+                generating: 'Generujem test...',
+                error: 'Chyba',
+                save_btn: 'Uložiť',
+                share_btn: 'Zdieľať',
+                mode_code: 'Kód',
+                placeholder_code: 'Popíš úlohu pre kód...'
+            },
+            uk: {
+                settings_title: 'Налаштування',
+                lang_label: 'Мова',
+                theme_label: 'Темна тема',
+                suggestion_file: 'Створи тест з файлу',
+                suggestion_analyze: 'Аналізуй документ',
+                suggestion_teach: 'Навчи мене через тест',
+                attach_doc: 'Документ',
+                attach_cam: 'Камера',
+                mode_test: 'Тест',
+                mode_cards: 'Картки',
+                mode_fill: 'Вписування',
+                placeholder_test: 'Про що створити тест?',
+                placeholder_cards: 'Тема для карток...',
+                placeholder_fill: 'Текст для заповнення...',
+                generating: 'Генерую тест...',
+                error: 'Помилка',
+                save_btn: 'Зберегти',
+                share_btn: 'Поділитись',
+                mode_code: 'Код',
+                placeholder_code: 'Опиши задачу для коду...'
+            },
+            en: {
+                settings_title: 'Settings',
+                lang_label: 'Language',
+                theme_label: 'Dark Theme',
+                suggestion_file: 'Create test from file',
+                suggestion_analyze: 'Analyze document',
+                suggestion_teach: 'Teach me via test',
+                attach_doc: 'Document',
+                attach_cam: 'Camera',
+                mode_test: 'Test',
+                mode_cards: 'Flashcards',
+                mode_fill: 'Fill-in',
+                placeholder_test: 'What to create test about?',
+                placeholder_cards: 'Topic for flashcards...',
+                placeholder_fill: 'Text for fill-in...',
+                generating: 'Generating test...',
+                error: 'Error',
+                save_btn: 'Save',
+                share_btn: 'Share',
+                mode_code: 'Code',
+                placeholder_code: 'Describe code task...'
+            }
+        };
+
+        // Add additional UI keys for full translation coverage
+        Object.keys(translations).forEach(k => {
+            const t = translations[k];
+            t.app_title = t.app_title || (k === 'uk' ? 'Oleksandr Test' : k === 'sk' ? 'Oleksandr Test' : 'Oleksandr Test');
+            t.splash_desc = t.splash_desc || (k === 'uk' ? 'Ваш AI асистент для створення тестів' : k === 'sk' ? 'Váš AI asistent pre tvorbu testov' : 'Your AI assistant for creating tests');
+            t.splash_feature_tests = t.splash_feature_tests || (k === 'uk' ? 'Тести з вибором відповіді' : k === 'sk' ? 'Testy s výberom odpovedí' : 'Multiple choice tests');
+            t.splash_feature_cards = t.splash_feature_cards || (k === 'uk' ? 'Картки' : k === 'sk' ? 'Kartičky' : 'Flashcards');
+            t.splash_feature_photo = t.splash_feature_photo || (k === 'uk' ? 'Фотографія' : k === 'sk' ? 'Fotografia' : 'Photo');
+            t.splash_feature_analytics = t.splash_feature_analytics || (k === 'uk' ? 'Аналітика' : k === 'sk' ? 'Analytika' : 'Analytics');
+            t.start_button = t.start_button || (k === 'uk' ? 'Почати' : k === 'sk' ? 'Začať' : 'Start');
+            t.model_pro = t.model_pro || 'Pro';
+            t.model_fast = t.model_fast || (k === 'uk' ? 'Швидкий' : k === 'sk' ? 'Rýchly' : 'Fast');
+            t.model_desc_pro = t.model_desc_pro || (k === 'uk' ? 'Розширений та стратегічний' : k === 'sk' ? 'Pokročilý a strategický' : 'Advanced & Strategic');
+            t.model_desc_fast = t.model_desc_fast || (k === 'uk' ? 'Швидкий та ефективний' : k === 'sk' ? 'Rýchly a efektívny' : 'Fast & Efficient');
+            t.model_pro3 = t.model_pro3 || (k === 'uk' ? 'Pro 3.0' : k === 'sk' ? 'Pro 3.0' : 'Pro 3.0');
+            t.model_fast3 = t.model_fast3 || (k === 'uk' ? 'Fast 3.0' : k === 'sk' ? 'Fast 3.0' : 'Fast 3.0');
+            t.model_thinking3 = t.model_thinking3 || (k === 'uk' ? 'Thinking 3.0' : k === 'sk' ? 'Thinking 3.0' : 'Thinking 3.0');
+            t.model_desc_pro3 = t.model_desc_pro3 || (k === 'uk' ? 'Розширений режим 3.0' : k === 'sk' ? 'Pokročilý režim 3.0' : 'Advanced 3.0 mode');
+            t.model_desc_fast3 = t.model_desc_fast3 || (k === 'uk' ? 'Швидкі відповіді та низька затримка' : k === 'sk' ? 'Rýchle odpovede a nízka latencia' : 'Quick responses and low latency');
+            t.model_desc_thinking3 = t.model_desc_thinking3 || (k === 'uk' ? 'Поглиблений аналіз і структуровані відповіді' : k === 'sk' ? 'Hlbšia analýza a štruktúrované odpovede' : 'Deeper analysis and structured answers');
+            t.old_models_toggle = t.old_models_toggle || 'Use old modelss';
+            t.library_button = t.library_button || (k === 'uk' ? 'Мої тести' : k === 'sk' ? 'Moje testy' : 'My tests');
+            t.analytics_button = t.analytics_button || (k === 'uk' ? 'Аналітика' : k === 'sk' ? 'Analytika' : 'Analytics');
+            t.settings_button = t.settings_button || (k === 'uk' ? 'Налаштування' : k === 'sk' ? 'Nastavenia' : 'Settings');
+            t.library_empty_title = t.library_empty_title || (k === 'uk' ? 'Немає збережених тестів' : k === 'sk' ? 'Žiadne uložené testy' : 'No saved tests');
+            t.library_empty_desc = t.library_empty_desc || (k === 'uk' ? 'Створіть свій перший тест, щоб він з\'явився тут' : k === 'sk' ? 'Vytvorte svoj prvý test, aby sa tu zobrazil' : 'Create your first test to see it here');
+            t.analytics_empty_title = t.analytics_empty_title || (k === 'uk' ? 'Поки що немає даних' : k === 'sk' ? 'Zatiaľ žiadne údaje' : 'No data yet');
+            t.analytics_empty_desc = t.analytics_empty_desc || (k === 'uk' ? 'Створіть тести, щоб побачити статистику' : k === 'sk' ? 'Vytvorte testy, aby ste videli štatistiky' : 'Create tests to see statistics');
+            t.view_btn = t.view_btn || (k === 'uk' ? 'Переглянути' : k === 'sk' ? 'Zobraziť' : 'View');
+            t.delete_confirm = t.delete_confirm || (k === 'uk' ? 'Ви впевнені, що хочете видалити цей тест?' : k === 'sk' ? 'Naozaj chcete tento test odstrániť?' : 'Are you sure you want to delete this test?');
+            t.questions_label = t.questions_label || (k === 'uk' ? 'питань' : k === 'sk' ? 'otázok' : 'questions');
+            t.saved_to_library = t.saved_to_library || (k === 'uk' ? 'Тест збережено до бібліотеки!' : k === 'sk' ? 'Test uložený v knižnici!' : 'Test saved to library!');
+            t.share_text = t.share_text || (k === 'uk' ? 'Пройди цей тест!' : k === 'sk' ? 'Vyskúšajte tento test!' : 'Try this test!');
+            t.share_copied = t.share_copied || (k === 'uk' ? 'Посилання скопійовано!' : k === 'sk' ? 'Odkaz skopírovaný!' : 'Link copied!');
+            t.camera_title = t.camera_title || (k === 'uk' ? 'Камера' : k === 'sk' ? 'Fotoaparát' : 'Camera');
+            t.capture_button = t.capture_button || (k === 'uk' ? 'Зняти' : k === 'sk' ? 'Odfoť' : 'Capture');
+            t.download_button = t.download_button || (k === 'uk' ? 'Завантажити' : k === 'sk' ? 'Stiahnuť' : 'Download');
+            t.camera_no_preview = t.camera_no_preview || (k === 'uk' ? "Немає прев'ю" : k === 'sk' ? 'Žiadne náhľad' : 'No preview');
+            t.cancel_btn = t.cancel_btn || (k === 'uk' ? 'Скасувати' : k === 'sk' ? 'Zrušiť' : 'Cancel');
+            t.file_downloaded = t.file_downloaded || (k === 'uk' ? 'Файл тесту завантажено! Поділіться цим HTML файлом з іншими.' : k === 'sk' ? 'Súbor testu stiahnutý! Zdieľajte tento HTML súbor s ostatnými.' : 'Test file downloaded! Share this HTML file with others.');
+            t.created_by = t.created_by || (k === 'uk' ? 'Створено за допомогою' : k === 'sk' ? 'Vytvorené pomocou' : 'Created with');
+            t.powered_by = t.powered_by || (k === 'uk' ? 'Працює на' : k === 'sk' ? 'Poháňané' : 'Powered by');
+            t.cards_label = t.cards_label || (k === 'uk' ? 'карток' : k === 'sk' ? 'kartičiek' : 'cards');
+            t.results_title = t.results_title || (k === 'uk' ? 'Результати' : k === 'sk' ? 'Výsledky' : 'Results');
+            t.retry_btn = t.retry_btn || (k === 'uk' ? 'Спробувати знову' : k === 'sk' ? 'Skúsiť znova' : 'Try Again');
+            t.submit_btn = t.submit_btn || (k === 'uk' ? 'Відправити' : k === 'sk' ? 'Odoslať' : 'Submit');
+            t.enter_answer = t.enter_answer || (k === 'uk' ? 'Введіть відповідь...' : k === 'sk' ? 'Zadajte odpoveď...' : 'Enter your answer...');
+            t.problem_label = t.problem_label || (k === 'uk' ? 'Завдання' : k === 'sk' ? 'Úloha' : 'Problem');
+            t.solution_label = t.solution_label || (k === 'uk' ? 'Рішення' : k === 'sk' ? 'Riešenie' : 'Solution');
+            t.copy_btn = t.copy_btn || (k === 'uk' ? 'Копіювати' : k === 'sk' ? 'Kopírovať' : 'Copy');
+            t.code_copied = t.code_copied || (k === 'uk' ? 'Код скопійовано!' : k === 'sk' ? 'Kód skopírovaný!' : 'Code copied to clipboard!');
+        });
+
+        // Initialize the app
+        function initApp() {
+            updateLanguage();
+            updateAnalytics();
+            updateTestsLibrary();
+            setupEventListeners();
+            loadThemePreference();
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Settings
+            settingsBtn.addEventListener('click', () => settingsModal.classList.toggle('hidden'));
+            closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+            // Language switcher
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentLang = btn.dataset.lang;
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateLanguage();
+                });
+            });
+
+            // Theme toggle
+            themeToggle.addEventListener('change', e => {
+                document.body.classList.toggle('dark', e.target.checked);
+                localStorage.setItem('darkTheme', e.target.checked);
+            });
+
+            // AI Mode switcher
+            aiModeToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                syncOldAiModels();
+                aiModeMenu.classList.toggle('active');
+                attachmentMenu.classList.remove('active');
+                modeMenu.classList.remove('active');
+            });
+
+            const updateCurrentAiLabel = () => {
+                const t = translations[currentLang];
+                const labelMap = {
+                    'pro-3': t.model_pro3 || 'Pro 3.0',
+                    'fast-3': t.model_fast3 || 'Fast 3.0',
+                    'thinking-3': t.model_thinking3 || 'Thinking 3.0',
+                    pro: t.model_pro || 'Pro',
+                    fast: t.model_fast || 'Fast'
+                };
+                currentAiLabel.textContent = labelMap[selectedAiMode] || (t.model_pro3 || 'Pro 3.0');
+            };
+
+            const syncOldAiModels = (forceOpen = null) => {
+                if (!aiOldGroup || !aiOldToggle) return;
+                const isOldMode = selectedAiMode === 'pro' || selectedAiMode === 'fast';
+                const shouldOpen = forceOpen === null ? isOldMode : forceOpen;
+                aiOldGroup.classList.toggle('open', shouldOpen);
+                aiOldToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            };
+
+            window.toggleOldAiModels = function (event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const isOpen = aiOldGroup && aiOldGroup.classList.contains('open');
+                syncOldAiModels(!isOpen);
+            };
+
+            window.setAiModel = function (mode) {
+                selectedAiMode = mode;
+                updateCurrentAiLabel();
+
+                // Update active state in menu
+                aiModeItems.forEach(item => {
+                    item.classList.toggle('active', item.dataset.mode === mode);
+                });
+
+                syncOldAiModels();
+                aiModeMenu.classList.remove('active');
+            };
+
+            // Initial state for menu items
+            updateCurrentAiLabel();
+            aiModeItems.forEach(item => item.classList.toggle('active', item.dataset.mode === selectedAiMode));
+            syncOldAiModels();
+
+            // Navigation buttons
+            libraryBtn.addEventListener('click', () => {
+                showScreen('library');
+            });
+
+            analyticsBtn.addEventListener('click', () => {
+                showScreen('analytics');
+            });
+
+            // Input handling
+            mainContainer.addEventListener('scroll', () => {
+                if (mainContainer.scrollTop > 50) {
+                    inputContainer.classList.add('collapsed');
+                    attachmentMenu.classList.remove('active');
+                    modeMenu.classList.remove('active');
+                }
+            });
+
+            document.getElementById('input-bar').addEventListener('click', e => {
+                if (inputContainer.classList.contains('collapsed')) {
+                    inputContainer.classList.remove('collapsed');
+                    userInput.focus();
+                    e.stopPropagation();
+                }
+            });
+
+            userInput.addEventListener('input', () => {
+                if (userInput.value.trim().length > 0) {
+                    micIcon.classList.add('hidden');
+                    arrowIcon.classList.remove('hidden');
+                } else {
+                    micIcon.classList.remove('hidden');
+                    arrowIcon.classList.add('hidden');
+                }
+            });
+
+            userInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') handleSend();
+            });
+
+            sendBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                handleSend();
+            });
+
+            attachBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                attachmentMenu.classList.toggle('active');
+                modeMenu.classList.remove('active');
+            });
+
+            modeBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                const isActive = modeMenu.classList.toggle('active');
+                attachmentMenu.classList.remove('active');
+            });
+
+            document.addEventListener('click', e => {
+                if (!inputContainer.contains(e.target)) {
+                    attachmentMenu.classList.remove('active');
+                    modeMenu.classList.remove('active');
+                    aiModeMenu.classList.remove('active');
+                    syncOldAiModels();
+                }
+            });
+
+            // File input
+            fileInput.addEventListener('change', async e => {
+                const file = e.target.files[0];
+                if (file) {
+                    userInput.value = `📎 ${file.name}`;
+                    micIcon.classList.add('hidden');
+                    arrowIcon.classList.remove('hidden');
+
+                    // Reset previous context
+                    attachedFileContext = `File: ${file.name}`;
+                    attachedImageBase64 = null;
+
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = async (event) => {
+                            attachedImageBase64 = event.target.result; // Store for Vision API
+                            // Still run basic OCR for searchability/context
+                            await recognizeDocument(event.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // Handle Document Reading
+                        const ocrStatus = document.getElementById('ocr-status');
+                        ocrStatus.style.display = 'block';
+                        ocrStatus.textContent = translations[currentLang].generating ? translations[currentLang].generating.replace('...', '') + ' analysis...' : 'Reading document...';
+
+                        try {
+                            const text = await readDocument(file);
+                            attachedFileContext += `\n\nDocument Content:\n${text}`;
+                            ocrStatus.textContent = 'Document read successfully!';
+                            setTimeout(() => { ocrStatus.style.display = 'none'; }, 2000);
+                        } catch (err) {
+                            console.error('Document Read Error:', err);
+                            ocrStatus.textContent = 'Failed to read document';
+                            setTimeout(() => { ocrStatus.style.display = 'none'; }, 3000);
+                        }
+                    }
+                }
+            });
+
+            // Camera modal event wiring
+            const cameraModal = document.getElementById('camera-modal');
+            const cameraVideo = document.getElementById('camera-video');
+            const cameraCanvas = document.getElementById('camera-canvas');
+            const captureBtn = document.getElementById('capture-photo');
+            const downloadLink = document.getElementById('download-photo');
+            const closeCameraBtn = document.getElementById('close-camera');
+            const cameraThumb = document.getElementById('camera-thumb');
+
+            window.openCamera = function () {
+                cameraModal.classList.remove('hidden');
+                startCamera();
+            };
+
+            async function startCamera() {
+                try {
+                    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    cameraVideo.srcObject = s;
+                    cameraVideo.play();
+                } catch (err) {
+                    console.error('Camera failed:', err);
+                    alert(translations[currentLang].error || 'Camera error');
+                }
+            }
+
+            function stopCamera() {
+                const stream = cameraVideo.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(t => t.stop());
+                }
+                cameraVideo.srcObject = null;
+            }
+
+            captureBtn.addEventListener('click', () => {
+                cameraCanvas.width = cameraVideo.videoWidth || 1280;
+                cameraCanvas.height = cameraVideo.videoHeight || 720;
+                const ctx = cameraCanvas.getContext('2d');
+                // preserve applied filter
+                const computedFilter = window.getComputedStyle(cameraVideo).getPropertyValue('filter') || 'none';
+                if (computedFilter && computedFilter !== 'none') ctx.filter = computedFilter;
+                ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+                cameraCanvas.toBlob(async blob => {
+                    const url = URL.createObjectURL(blob);
+                    cameraThumb.innerHTML = `<img src="${url}" alt="preview">`;
+                    downloadLink.href = url;
+                    downloadLink.classList.remove('hidden');
+                    // also attach as file context for test creation
+                    attachedFileContext = `Photo: ${new Date().toISOString()}`;
+                    userInput.value = translations[currentLang].attach_cam || 'Photo attached';
+                    micIcon.classList.add('hidden');
+                    arrowIcon.classList.remove('hidden');
+
+                    // Trigger OCR
+                    await recognizeDocument(url);
+                }, 'image/png');
+            });
+
+            closeCameraBtn.addEventListener('click', () => {
+                cameraModal.classList.add('hidden');
+                stopCamera();
+            });
+
+            // Filters
+            document.querySelectorAll('.camera-filter-btn').forEach(b => {
+                b.addEventListener('click', () => {
+                    const f = b.dataset.filter || 'none';
+                    cameraVideo.style.filter = f;
+                    // reflect on canvas preview if present
+                });
+            });
+
+            // Progress cancel button
+            progressCancelBtn.addEventListener('click', () => {
+                isGenerating = false;
+                testCreationProgress.classList.add('hidden');
+                contentArea.innerHTML = '<p style="text-align: center; color: var(--text-secondary); margin-top: 1rem;">Створення тесту скасовано</p>';
+            });
+        }
+
+        // Document Reading Logic
+        async function readDocument(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                if (file.type === 'application/pdf') {
+                    reader.onload = async function () {
+                        try {
+                            const typedarray = new Uint8Array(this.result);
+                            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                            let fullText = '';
+
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const textContent = await page.getTextContent();
+                                const pageText = textContent.items.map(item => item.str).join(' ');
+                                fullText += pageText + '\n';
+                            }
+                            resolve(fullText);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+                else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    reader.onload = function (event) {
+                        const arrayBuffer = event.target.result;
+                        mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                            .then(result => resolve(result.value))
+                            .catch(err => reject(err));
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+                else if (file.type === 'text/plain') {
+                    reader.onload = function (e) {
+                        resolve(e.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+                else {
+                    reject(new Error('Unsupported file type'));
+                }
+            });
+        }
+
+        // OCR Logic (Legacy Support + Searchable Text)
+        async function recognizeDocument(imageSource) {
+            const ocrStatus = document.getElementById('ocr-status');
+            ocrStatus.style.display = 'block';
+            ocrStatus.textContent = 'Scanning image content...';
+
+            try {
+                const result = await Tesseract.recognize(
+                    imageSource,
+                    'ukr+eng+slk',
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                ocrStatus.textContent = `Scanning: ${Math.round(m.progress * 100)}%`;
+                            }
+                        }
+                    }
+                );
+
+                attachedFileContext += `\n\nOCR Recognized Text (Reference Only):\n${result.data.text}`;
+                ocrStatus.textContent = 'Image scanned!';
+                setTimeout(() => {
+                    ocrStatus.style.display = 'none';
+                }, 2000);
+            } catch (err) {
+                console.error('OCR Error:', err);
+                ocrStatus.textContent = 'Scan failed (Vision used fallback)';
+                setTimeout(() => {
+                    ocrStatus.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Show screen function
+        function showScreen(screenName) {
+            screens.forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${screenName}`).classList.add('active');
+
+            // Update library when navigating to it
+            if (screenName === 'library') {
+                updateTestsLibrary();
+            }
+
+            // Update analytics when navigating to it
+            if (screenName === 'analytics') {
+                updateAnalytics();
+            }
+        }
+
+        // Select language from splash screen
+        function selectSplashLanguage(lang) {
+            currentLang = lang;
+
+            // Update settings buttons visual state
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.dataset.lang === lang) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            updateLanguage();
+
+            // Provide immediate visual feedback on splash screen buttons
+            document.querySelectorAll('.lang-btn-splash').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(lang)) {
+                    btn.style.background = 'var(--text-main)';
+                    btn.style.color = 'var(--bg-body)';
+                    btn.style.borderColor = 'var(--text-main)';
+                } else {
+                    btn.style.background = 'var(--bg-body)';
+                    btn.style.color = 'var(--text-main)';
+                    btn.style.borderColor = 'var(--border-glass)';
+                }
+            });
+        }
+
+        // Update language
+        function updateLanguage() {
+            const t = translations[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.textContent = t[key];
+            });
+            // Update title/tooltips for buttons that carry i18n-title
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (t[key]) el.title = t[key];
+            });
+            // Update document title if provided
+            if (t.app_title) document.title = t.app_title;
+            // Update placeholders and other dynamic elements
+            setMode(currentMode);
+            if (typeof window.setAiModel === 'function') {
+                window.setAiModel(selectedAiMode);
+            }
+        }
+
+        // Set mode and update placeholder
+        function setMode(mode) {
+            currentMode = mode;
+            const t = translations[currentLang];
+            const placeholderMap = {
+                'multiple-choice': t.placeholder_test,
+                'flashcards': t.placeholder_cards,
+                'fill-in': t.placeholder_fill,
+                'code': t.placeholder_code
+            };
+            userInput.placeholder = placeholderMap[mode] || "Create test with OleksandrAi";
+            modeMenu.classList.remove('active');
+        }
+
+        // Set prompt and send
+        function setPromptAndSend(prompt) {
+            userInput.value = prompt;
+            handleSend();
+        }
+
+        // Trigger file upload
+        function triggerFileUpload(accept) {
+            fileInput.accept = accept;
+            fileInput.click();
+            attachmentMenu.classList.remove('active');
+        }
+
+        // Load theme preference
+        function loadThemePreference() {
+            const darkTheme = localStorage.getItem('darkTheme') === 'true';
+            document.body.classList.toggle('dark', darkTheme);
+            themeToggle.checked = darkTheme;
+        }
+
+        // Handle send
+        async function handleSend() {
+            if (window.Auth && !Auth.check()) return;
+            const text = userInput.value.trim();
+            if (!text && !attachedFileContext) return;
+            if (isGenerating) return;
+
+            isGenerating = true;
+            startPlaceholder.style.display = 'none';
+            contentArea.innerHTML = '';
+
+            // Show progress
+            testCreationProgress.classList.remove('hidden');
+            progressText.textContent = translations[currentLang].generating;
+
+            inputContainer.classList.add('collapsed');
+
+            try {
+                const testData = await generateTest(text, currentMode, selectedAiMode);
+                renderTest(testData);
+                saveTestToLibrary(testData);
+                userInput.value = '';
+                attachedFileContext = '';
+            } catch (err) {
+                contentArea.innerHTML = `<p style="color:var(--error);text-align:center">${translations[currentLang].error}</p>`;
+                console.error('Test generation error:', err);
+            } finally {
+                isGenerating = false;
+                testCreationProgress.classList.add('hidden');
+            }
+        }
+
+        // Generate test using AI API
+        async function generateTest(prompt, testType = 'multiple-choice', aiMode = 'pro-3') {
+            try {
+                const modeDescriptions = {
+                    'pro-3': 'You are OleksandrAi.pro 3.0, an advanced test generator focused on quality, depth, and precision.',
+                    'fast-3': 'You are OleksandrAi 3.0 fast, a test generator optimized for speed and low latency.',
+                    'thinking-3': 'You are OleksandrAi 3.0 thinking, a test generator focused on deep analysis and structured reasoning.',
+                    'pro': 'You are an advanced test generator with enhanced capabilities for coding and image analysis.',
+                    'fast': 'You are a fast test generator optimized for quick responses.'
+                };
+                const modeDescription = modeDescriptions[aiMode] || modeDescriptions['pro-3'];
+
+                // Determine question count from prompt or use default
+                const questionCount = extractQuestionCount(prompt) || 5;
+
+                const langName = currentLang === 'uk' ? 'Ukrainian' : currentLang === 'sk' ? 'Slovak' : 'English';
+
+                const systemPrompt = `${modeDescription} Based on the user's prompt and selected test type, generate a test in JSON format.
+                
+IMPORTANT: Generate ALL content (questions, answers, titles, etc.) in ${langName} language.
+IMPORTANT: Create exactly ${questionCount} questions for the test.
+
+NOTE: The "code" type is strict.
+- "multiple-choice" type: For MULTIPLE CHOICE tests with options and one correct answer
+- "fill-in" type: For FILL-IN-THE-BLANK tests where users type answers into blanks
+- "flashcards" type: For FLASHCARDS where users flip cards to learn
+- "code" type: For CODING CHALLENGES where users need to solve a problem with code
+
+For multiple-choice tests, return:
+{
+  "type": "multiple-choice",
+  "title": "Test Title",
+  "questions": [
+    {
+      "question": "Question text?",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "answer": 0
+    }
+  ]
+}
+
+For fill-in-the-blank tests, return:
+{
+  "type": "fill-in",
+  "title": "Test Title",
+  "questions": [
+    {
+      "question": "Sentence with _____ to fill in.",
+      "answer": "correct answer"
+    }
+  ]
+}
+
+For flashcards, return:
+{
+  "type": "flashcards",
+  "title": "Flashcards Title",
+  "cards": [
+    {
+      "front": "Question or term",
+      "back": "Answer or definition"
+    }
+  ]
+}
+
+For code challenges, return:
+{
+  "type": "code",
+  "title": "Challenge Title",
+  "problem": "Description of the coding problem...",
+  "solution": "The implementation code (in Python or JS)",
+  "language": "python" 
+}
+
+The selected test type is: "${testType}". Generate the test accordingly with ${questionCount} items (unless type is code, then just 1 challenge).
+Generate the test in ${langName} language. Return ONLY valid JSON, no additional text.`;
+
+                let messages = [{ role: 'system', content: systemPrompt }];
+                if (attachedImageBase64 && aiMode !== 'thinking-3' && aiMode !== 'fast-3') {
+                    messages.push({
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: prompt },
+                            { type: 'image_url', image_url: { url: attachedImageBase64 } }
+                        ]
+                    });
+                } else {
+                    const promptWithImageNote = attachedImageBase64 && (aiMode === 'thinking-3' || aiMode === 'fast-3')
+                        ? `${prompt}\n\n[Image attached by user]`
+                        : prompt;
+                    messages.push({ role: 'user', content: promptWithImageNote });
+                }
+
+                let endpoint = POLLINATIONS_API_ENDPOINT;
+                let headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${POLLINATIONS_API_KEY}`
+                };
+                const modeConfig = {
+                    'pro-3': { model: 'glm-5', temperature: 0.6, maxTokens: 2200 },
+                    'thinking-3': { model: 'minimax-m2.1', temperature: 0.5, maxTokens: 1800 },
+                    'pro': { model: 'openai', temperature: 0.7, maxTokens: 2000 },
+                    'fast': { model: 'mistral', temperature: 0.5, maxTokens: 1400 }
+                };
+                let requestBody = null;
+
+                if (aiMode === 'fast-3') {
+                    endpoint = NVIDIA_INVOKE_URL;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${NVIDIA_API_KEY}`,
+                        'Accept': 'application/json'
+                    };
+                    requestBody = {
+                        model: NVIDIA_FAST3_MODEL,
+                        messages,
+                        max_tokens: 16384,
+                        temperature: 0.60,
+                        top_p: 0.95,
+                        top_k: 20,
+                        presence_penalty: 0,
+                        repetition_penalty: 1,
+                        stream: false,
+                        chat_template_kwargs: { enable_thinking: true }
+                    };
+                } else {
+                    const selectedConfig = modeConfig[aiMode] || modeConfig['pro-3'];
+                    requestBody = {
+                        model: selectedConfig.model,
+                        messages,
+                        temperature: selectedConfig.temperature,
+                        max_tokens: selectedConfig.maxTokens
+                    };
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    let errorDetails = 'Unknown error';
+                    try {
+                        const errorData = await response.json();
+                        errorDetails = errorData?.error?.message || JSON.stringify(errorData) || errorDetails;
+                    } catch (_) {
+                        errorDetails = await response.text();
+                    }
+                    console.error('API Error:', errorDetails);
+                    throw new Error(`API request failed: ${errorDetails}`);
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // Parse JSON from response
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const testData = JSON.parse(jsonMatch[0]);
+                    return testData;
+                } else {
+                    throw new Error('Invalid response format from API');
+                }
+
+            } catch (error) {
+                console.error('AI generation error:', error);
+                // Fallback to mock data if API fails
+                return await getMockTest(testType);
+            }
+        }
+
+        // Extract question count from prompt
+        function extractQuestionCount(prompt) {
+            // Try to find explicit number in the prompt
+            const countMatch = prompt.match(/(\d+)\s*(питання|питань|запитань|questions)/i);
+            if (countMatch) {
+                return parseInt(countMatch[1]);
+            }
+
+            // If no explicit number, try to estimate based on content length and complexity
+            const wordCount = prompt.split(/\s+/).length;
+
+            // For short prompts (1-2 sentences)
+            if (wordCount < 20) return 3;
+
+            // For medium prompts (paragraph)
+            if (wordCount < 50) return 5;
+
+            // For longer content
+            if (wordCount < 100) return 7;
+
+            // For very long content
+            return 10;
+        }
+
+        // Mock test generation as fallback
+        async function getMockTest(testType) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const t = translations[currentLang];
+
+            if (testType === 'flashcards') {
+                if (currentLang === 'uk') {
+                    return {
+                        type: 'flashcards',
+                        title: 'Демонстраційні картки',
+                        cards: [
+                            { front: 'Столиця України', back: 'Київ' },
+                            { front: 'Найбільша планета', back: 'Юпітер' },
+                            { front: '2 + 2', back: '4' }
+                        ]
+                    };
+                } else if (currentLang === 'sk') {
+                    return {
+                        type: 'flashcards',
+                        title: 'Ukážkové kartičky',
+                        cards: [
+                            { front: 'Hlavné mesto Slovenska', back: 'Bratislava' },
+                            { front: 'Najväčšia planéta', back: 'Jupiter' },
+                            { front: '2 + 2', back: '4' }
+                        ]
+                    };
+                } else {
+                    return {
+                        type: 'flashcards',
+                        title: 'Demo Flashcards',
+                        cards: [
+                            { front: 'Capital of USA', back: 'Washington D.C.' },
+                            { front: 'Largest Planet', back: 'Jupiter' },
+                            { front: '2 + 2', back: '4' }
+                        ]
+                    };
+                }
+            } else if (testType === 'fill-in') {
+                if (currentLang === 'uk') {
+                    return {
+                        type: 'fill-in',
+                        title: 'Тест на вписування',
+                        questions: [
+                            { question: 'Столиця України - ______.', answer: 'Київ' },
+                            { question: 'Сонце - це ______.', answer: 'Зірка' }
+                        ]
+                    };
+                } else if (currentLang === 'sk') {
+                    return {
+                        type: 'fill-in',
+                        title: 'Doplňovačka',
+                        questions: [
+                            { question: 'Hlavné mesto Slovenska je ______.', answer: 'Bratislava' },
+                            { question: 'Slnko je ______.', answer: 'Hviezda' }
+                        ]
+                    };
+                } else {
+                    return {
+                        type: 'fill-in',
+                        title: 'Fill-in Test',
+                        questions: [
+                            { question: 'The capital of UK is ______.', answer: 'London' },
+                            { question: 'The Sun is a ______.', answer: 'Star' }
+                        ]
+                    };
+                }
+            } else if (testType === 'code') {
+                if (currentLang === 'uk') {
+                    return {
+                        type: 'code',
+                        title: 'Завдання на кодування',
+                        problem: 'Напишіть функцію для обчислення фібоначчі.',
+                        solution: 'def fib(n):\n    if n <= 1: return n\n    return fib(n-1) + fib(n-2)',
+                        language: 'python'
+                    };
+                } else if (currentLang === 'sk') {
+                    return {
+                        type: 'code',
+                        title: 'Kódovacia úloha',
+                        problem: 'Napíšte funkciu pre výpočet Fibonacciho postupnosti.',
+                        solution: 'def fib(n):\n    if n <= 1: return n\n    return fib(n-1) + fib(n-2)',
+                        language: 'python'
+                    };
+                } else {
+                    return {
+                        type: 'code',
+                        title: 'Coding Challenge',
+                        problem: 'Write a function to calculate Fibonacci sequence.',
+                        solution: 'def fib(n):\n    if n <= 1: return n\n    return fib(n-1) + fib(n-2)',
+                        language: 'python'
+                    };
+                }
+            }
+
+            // Default: multiple choice
+            if (currentLang === 'uk') {
+                return {
+                    type: 'multiple-choice',
+                    title: 'Демонстраційний тест',
+                    questions: [
+                        { question: 'Який колір має небо?', options: ['Червоний', 'Синій', 'Зелений', 'Жовтий'], answer: 1 },
+                        { question: 'Скільки буде 2 + 2?', options: ['3', '4', '5', '6'], answer: 1 }
+                    ]
+                };
+            } else if (currentLang === 'sk') {
+                return {
+                    type: 'multiple-choice',
+                    title: 'Ukážkový test',
+                    questions: [
+                        { question: 'Akej farby je obloha?', options: ['Červená', 'Modrá', 'Zelená', 'Žltá'], answer: 1 },
+                        { question: 'Koľko je 2 + 2?', options: ['3', '4', '5', '6'], answer: 1 }
+                    ]
+                };
+            } else {
+                return {
+                    type: 'multiple-choice',
+                    title: 'Demo Test',
+                    questions: [
+                        { question: 'What color is the sky?', options: ['Red', 'Blue', 'Green', 'Yellow'], answer: 1 },
+                        { question: 'How much is 2 + 2?', options: ['3', '4', '5', '6'], answer: 1 }
+                    ]
+                };
+            }
+        }
+
+        // Generate shareable HTML file with test
+        function generateTestHtmlFile(testData) {
+            const t = translations[currentLang];
+            const langName = currentLang === 'uk' ? 'Українська' : currentLang === 'sk' ? 'Slovenčina' : 'English';
+
+            let testHtmlContent = '';
+
+            if (testData.type === 'multiple-choice') {
+                testHtmlContent = `
+                    <div class="test-container">
+                        ${testData.questions.map((q, i) => `
+                            <div class="question-block" data-question="${i}" data-answer="${q.answer}">
+                                <p class="question-text">${i + 1}. ${q.q || q.question}</p>
+                                <div class="options-list">
+                                    ${(q.options || []).map((opt, idx) => `
+                                        <div class="option-item" data-index="${idx}" onclick="selectOption(this, ${i}, ${idx}, ${q.answer})">${opt}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div class="results-section" id="results" style="display: none;">
+                            <h2>${t.results_title || 'Results'}</h2>
+                            <div class="score-display">
+                                <span id="score">0</span>/<span id="total">${testData.questions.length}</span>
+                            </div>
+                            <button class="btn-primary" onclick="resetTest()">${t.retry_btn || 'Try Again'}</button>
+                        </div>
+                        <button class="btn-primary submit-btn" id="submitBtn" onclick="submitTest()">${t.submit_btn || 'Submit'}</button>
+                    </div>
+                `;
+            } else if (testData.type === 'flashcards') {
+                testHtmlContent = `
+                    <div class="flashcards-container">
+                        ${(testData.cards || []).map((card, i) => `
+                            <div class="flashcard-wrapper">
+                                <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                                    <div class="flashcard-front">${card.front}</div>
+                                    <div class="flashcard-back">${card.back}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (testData.type === 'fill-in') {
+                testHtmlContent = `
+                    <div class="test-container">
+                        ${testData.questions.map((q, i) => `
+                            <div class="question-block" data-question="${i}" data-answer="${q.answer}">
+                                <p class="question-text">${i + 1}. ${q.q || q.question}</p>
+                                <input type="text" class="input-field answer-input" data-index="${i}" placeholder="${t.enter_answer || 'Enter your answer...'}">
+                            </div>
+                        `).join('')}
+                        <div class="results-section" id="results" style="display: none;">
+                            <h2>${t.results_title || 'Results'}</h2>
+                            <div class="score-display">
+                                <span id="score">0</span>/<span id="total">${testData.questions.length}</span>
+                            </div>
+                            <button class="btn-primary" onclick="resetFillTest()">${t.retry_btn || 'Try Again'}</button>
+                        </div>
+                        <button class="btn-primary submit-btn" id="submitBtn" onclick="submitFillTest()">${t.submit_btn || 'Submit'}</button>
+                    </div>
+                `;
+            } else if (testData.type === 'code') {
+                testHtmlContent = `
+                    <div class="code-challenge">
+                        <div class="problem-section">
+                            <h3>${t.problem_label || 'Problem'}:</h3>
+                            <p>${testData.problem}</p>
+                        </div>
+                        <div class="solution-section">
+                            <h3>${t.solution_label || 'Solution'} (${testData.language || 'python'}):</h3>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyCode()">${t.copy_btn || 'Copy'}</button>
+                                <pre><code id="solutionCode">${testData.solution}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="${currentLang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${testData.title} - OleksandrAi Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0a0a0f;
+            --bg-surface: #12121a;
+            --bg-card: #1a1a24;
+            --text-main: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --radius: 16px;
+            --radius-sm: 12px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .test-container, .flashcards-container, .code-challenge {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .question-block {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .question-block:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: var(--shadow);
+        }
+        
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .option-item {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+        
+        .option-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent);
+        }
+        
+        .option-item.selected-correct {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .option-item.selected-wrong {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--error);
+            color: var(--error);
+        }
+        
+        .option-item.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        /* Flashcards */
+        .flashcards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .flashcard-wrapper {
+            perspective: 1000px;
+        }
+        
+        .flashcard {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        
+        .flashcard-front {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
+        }
+        
+        .flashcard-back {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            transform: rotateY(180deg);
+        }
+        
+        /* Code */
+        .problem-section, .solution-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+        }
+        
+        .problem-section h3, .solution-section h3 {
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            position: relative;
+            overflow-x: auto;
+        }
+        
+        .code-block pre {
+            margin: 0;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--accent-hover);
+        }
+        
+        /* Input field for fill-in */
+        .input-field {
+            width: 100%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            color: var(--text-main);
+            font-size: 1rem;
+            margin-top: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        .input-field.correct {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+        
+        .input-field.wrong {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        /* Results */
+        .results-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .results-section h2 {
+            margin-bottom: 1rem;
+        }
+        
+        .score-display {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+        
+        .submit-btn {
+            margin-top: 1rem;
+            width: 100%;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .question-block {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>${testData.title}</h1>
+            <p class="meta">${t.created_by || 'Created with'} OleksandrAi • ${testData.type === 'multiple-choice' ? (testData.questions?.length || 0) + ' ' + (t.questions_label || 'questions') : testData.type === 'flashcards' ? (testData.cards?.length || 0) + ' ' + (t.cards_label || 'cards') : testData.type}</p>
+        </div>
+        
+        ${testHtmlContent}
+        
+        <div class="footer">
+            <p>${t.powered_by || 'Powered by'} <a href="#">OleksandrAi</a></p>
+        </div>
+    </div>
+    
+    <script>
+        const testData = ${JSON.stringify(testData)};
+        let answers = {};
+        
+        function selectOption(element, questionIdx, optionIdx, correctIdx) {
+            const block = element.closest('.question-block');
+            const options = block.querySelectorAll('.option-item');
+            
+            if (answers[questionIdx] !== undefined) return;
+            
+            answers[questionIdx] = optionIdx;
+            
+            options.forEach(opt => {
+                opt.classList.add('disabled');
+            });
+            
+            if (optionIdx === correctIdx) {
+                element.classList.add('selected-correct');
+            } else {
+                element.classList.add('selected-wrong');
+                options[correctIdx].classList.add('selected-correct');
+            }
+        }
+        
+        function submitTest() {
+            const questions = testData.questions || [];
+            let correct = 0;
+            
+            questions.forEach((q, i) => {
+                if (answers[i] === q.answer) {
+                    correct++;
+                }
+            });
+            
+            document.getElementById('score').textContent = correct;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+        
+        function resetTest() {
+            answers = {};
+            document.querySelectorAll('.option-item').forEach(opt => {
+                opt.classList.remove('selected-correct', 'selected-wrong', 'disabled');
+            });
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+        }
+        
+        function submitFillTest() {
+            const questions = testData.questions || [];
+            let correct = 0;
+            
+            document.querySelectorAll('.answer-input').forEach((input, i) => {
+                const userAnswer = input.value.trim().toLowerCase();
+                const correctAnswer = questions[i].answer.toLowerCase();
+                
+                if (userAnswer === correctAnswer) {
+                    correct++;
+                    input.classList.add('correct');
+                } else {
+                    input.classList.add('wrong');
+                }
+                input.disabled = true;
+            });
+            
+            document.getElementById('score').textContent = correct;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+        
+        function resetFillTest() {
+            document.querySelectorAll('.answer-input').forEach(input => {
+                input.value = '';
+                input.classList.remove('correct', 'wrong');
+                input.disabled = false;
+            });
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+        }
+        
+        function copyCode() {
+            const code = document.getElementById('solutionCode').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('${t.code_copied || 'Code copied to clipboard!'}');
+            });
+        }
+    <\/script>
+</body>
+
+</html>`;
+
+            // Create file object
+            const fileName = testData.title.replace(/[^a-zA-Zа-яА-ЯіІїЇєЄ0-9]/g, '_') + '_test.html';
+            const file = new File([htmlContent], fileName, { type: 'text/html;charset=utf-8' });
+
+            // 1. Download the file immediately
+            const url = URL.createObjectURL(file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 2. Try to open Share menu with the file
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: testData.title,
+                    text: translations[currentLang].share_text || 'Check out this test created with OleksandrAi!',
+                }).then(() => {
+                    console.log('Shared successfully');
+                }).catch((error) => {
+                    console.log('Share failed or closed:', error);
+                });
+            } else {
+                // Fallback message if sharing is not supported
+                alert(translations[currentLang].file_downloaded || 'Test file downloaded! Share this HTML file with others.');
+            }
+
+            // Clean up URL object after a delay to ensure download started
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        // Render test
+        function renderTest(data) {
+            contentArea.innerHTML = '';
+            const t = translations[currentLang];
+
+            const card = document.createElement('div');
+            card.className = 'test-result-card';
+
+            const h1 = document.createElement('h1');
+            h1.className = 'test-title';
+            h1.textContent = data.title;
+            card.appendChild(h1);
+
+            if (data.type === 'multiple-choice') {
+                data.questions.forEach((q, i) => {
+                    const block = document.createElement('div');
+                    block.className = 'question-block';
+                    block.innerHTML = `<p class="question-text">${i + 1}. ${q.q || q.question}</p>`;
+
+                    const options = q.options || [];
+                    options.forEach((opt, idx) => {
+                        const btn = document.createElement('div');
+                        btn.className = 'option-item';
+                        btn.textContent = opt;
+                        btn.onclick = function () {
+                            if (idx === q.answer || idx === q.correct) {
+                                this.classList.add('selected-correct');
+                            } else {
+                                this.classList.add('selected-wrong');
+                            }
+                        };
+                        block.appendChild(btn);
+                    });
+                    card.appendChild(block);
+                });
+            } else if (data.type === 'flashcards') {
+                const cards = data.cards || [];
+                cards.forEach(cardData => {
+                    const fc = document.createElement('div');
+                    fc.className = 'flashcard-container';
+                    fc.innerHTML = `
+<div class="flashcard-inner">
+    <div class="flashcard-front">${cardData.front}</div>
+    <div class="flashcard-back">${cardData.back}</div>
+</div>
+`;
+                    fc.onclick = () => fc.classList.toggle('flipped');
+                    card.appendChild(fc);
+                });
+            } else if (data.type === 'fill-in') {
+                const questions = data.questions || [];
+                questions.forEach((q, i) => {
+                    const block = document.createElement('div');
+                    block.className = 'question-block';
+                    block.innerHTML = `
+<p class="question-text">${i + 1}. ${q.q || q.question}</p>
+<input type="text" class="input-field" style="margin-top: 0.5rem;" placeholder="Введіть відповідь...">
+`;
+                    card.appendChild(block);
+                });
+            } else if (data.type === 'code') {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                block.innerHTML = `
+<div style="background:var(--surface);padding:1rem;border-radius:var(--radius-md);margin-bottom:1rem;">
+    <h3 style="margin-bottom:0.5rem;font-size:1rem;font-weight:600;">Problem:</h3>
+    <p style="line-height:1.5;">${data.problem}</p>
+</div>
+<div class="code-block"
+    style="background:#1e1e1e;color:#d4d4d4;padding:1rem;border-radius:var(--radius-md);overflow-x:auto;font-family:monospace;position:relative;">
+    <button class="copy-btn"
+        onclick="navigator.clipboard.writeText(this.parentElement.querySelector('code').innerText).then(()=>alert('Code copied!'))">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        Copy
+    </button>
+    <pre style="margin:0;"><code style="white-space:pre-wrap;">${data.solution}</code></pre>
+</div>
+`;
+                card.appendChild(block);
+            }
+
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap;';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn-primary';
+            saveBtn.innerHTML = `
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g opacity=".4"><path d="M14.5 10.6504h-5" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8.20996V13.21" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M16.8203 2H7.18031c-2.13.0-3.86 1.74-3.86 3.86V19.95c0 1.8 1.29 2.56 2.87 1.69l4.87999-2.71C11.5903 18.64 12.4303 18.64 12.9403 18.93l4.88 2.71C19.4003 22.52 20.6903 21.76 20.6903 19.95V5.86C20.6803 3.74 18.9503 2 16.8203 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+${t.save_btn}
+`;
+            saveBtn.onclick = () => {
+                saveTestToLibrary(data);
+
+                const defaultSaveIcon = `
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g opacity=".4"><path d="M14.5 10.6504h-5" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8.20996V13.21" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M16.8203 2H7.18031c-2.13.0-3.86 1.74-3.86 3.86V19.95c0 1.8 1.29 2.56 2.87 1.69l4.87999-2.71C11.5903 18.64 12.4303 18.64 12.9403 18.93l4.88 2.71C19.4003 22.52 20.6903 21.76 20.6903 19.95V5.86C20.6803 3.74 18.9503 2 16.8203 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+                const savedIcon = `
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M16.8203 2H7.18031c-2.13.0-3.86 1.74-3.86 3.86V19.95c0 1.8 1.29 2.56 2.87 1.69l4.87999-2.71C11.5903 18.64 12.4303 18.64 12.9403 18.93l4.88 2.71C19.4003 22.52 20.6903 21.76 20.6903 19.95V5.86C20.6803 3.74 18.9503 2 16.8203 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path opacity=".4" d="M9.58984 11l1.49996 1.5 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+                // Animation
+                saveBtn.innerHTML = `${savedIcon} ${t.save_btn || 'Saved'}`;
+                saveBtn.style.background = 'var(--success)';
+                saveBtn.style.color = '#fff';
+                saveBtn.style.borderColor = 'transparent';
+
+                setTimeout(() => {
+                    saveBtn.innerHTML = `${defaultSaveIcon} ${t.save_btn}`;
+                    saveBtn.style.background = '';
+                    saveBtn.style.color = '';
+                    saveBtn.style.borderColor = '';
+                }, 2000);
+            };
+
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'btn-secondary';
+            shareBtn.innerHTML = `
+<svg width="16" height="16" viewBox="144 144 512 512" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <defs>
+        <clipPath id="share-clip">
+            <path d="m148.09 486H651.9v159H148.09z" />
+        </clipPath>
+    </defs>
+    <path
+        d="m231.69 317.46 161.28-159.05c3.9219-3.8594 10.133-3.8594 14.055 0l161.82 159.53c6.2734 6.2109 2.0508 17.371-7.4805 17.191h-64.84v98.07c0 126.9-193.07 126.9-193.07 0v-98.07h-65.262c-9.4102 0-13.633-11.699-6.5156-17.672zm168.28-137.82-137.34 135.41h50.906c5.5508 0 10.012 4.5234 10.012 10.074v108.09c0 100.43 152.84 100.43 152.84 0v-108.09c0-5.5508 4.5234-10.012 10.074-10.012h50.906z" />
+    <g clip-path="url(#share-clip)">
+        <path
+            d="m237.06 555.52h325.82v-24.789c0-58.445 89.023-58.445 89.023 0v69.301c0 24.488-20.023 44.453-44.512 44.453h-414.79c-24.488 0-44.512-19.965-44.512-44.453v-69.301c0-58.445 88.965-58.445 88.965 0zm335.89 20.086H227.04c-5.5508 0-10.074-4.4648-10.074-10.012v-34.863c0-32.027-48.793-32.027-48.793 0v69.301c0 13.391 11.039 24.367 24.426 24.367h414.79c13.391 0 24.367-10.977 24.367-24.367v-69.301c0-32.027-48.734-32.027-48.734 0v34.863c0 5.5508-4.5234 10.012-10.074 10.012z" />
+    </g>
+</svg>
+${t.share_btn}
+`;
+            shareBtn.onclick = () => {
+                generateTestHtmlFile(data);
+            };
+
+            actions.appendChild(saveBtn);
+            actions.appendChild(shareBtn);
+            card.appendChild(actions);
+
+            contentArea.appendChild(card);
+            mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Save test to library
+        async function saveTestToLibrary(test) {
+            test.id = test.id || Date.now();
+            test.createdAt = test.createdAt || new Date().toISOString();
+
+            const existingIndex = savedTests.findIndex(t => t.id === test.id);
+            if (existingIndex !== -1) {
+                savedTests[existingIndex] = test;
+            } else {
+                savedTests.push(test);
+            }
+
+            localStorage.setItem('savedTests', JSON.stringify(savedTests));
+
+            updateTestsLibrary();
+            updateAnalytics();
+        }
+
+        // Delete test from library
+        async function deleteTest(testId) {
+            if (confirm(translations[currentLang].delete_confirm || 'Are you sure you want to delete this test?')) {
+                savedTests = savedTests.filter(test => test.id !== testId);
+                localStorage.setItem('savedTests', JSON.stringify(savedTests));
+
+                updateTestsLibrary();
+                updateAnalytics();
+            }
+        }
+
+        // Update tests library
+        function updateTestsLibrary() {
+            testsGrid.innerHTML = '';
+
+            if (savedTests.length === 0) {
+                libraryEmpty.classList.remove('hidden');
+                testsGrid.classList.add('hidden');
+                return;
+            }
+
+            libraryEmpty.classList.add('hidden');
+            testsGrid.classList.remove('hidden');
+
+            savedTests.forEach(test => {
+                const card = document.createElement('div');
+                card.className = 'test-card';
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = `
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+</svg>
+`;
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteTest(test.id);
+                });
+                card.appendChild(deleteBtn);
+
+                const icon = document.createElement('div');
+                icon.className = 'test-card-icon';
+
+                let iconSvg = '';
+                switch (test.type) {
+                    case 'multiple-choice':
+                        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="m9 12 2 2 4-4" />
+</svg>`;
+                        break;
+                    case 'fill-in':
+                        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M8 16h8M8 12h8M8 8h6" />
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+</svg>`;
+                        break;
+                    case 'flashcards':
+                        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M3 12h18" />
+    <path d="M12 3v18" />
+</svg>`;
+                        break;
+                    default:
+                        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+</svg>`;
+                }
+
+                icon.innerHTML = iconSvg;
+                card.appendChild(icon);
+
+                const title = document.createElement('h3');
+                title.textContent = test.title;
+                card.appendChild(title);
+
+                const questionCount = test.questions ? test.questions.length : test.cards ? test.cards.length : 0;
+                const meta = document.createElement('div');
+                meta.className = 'test-meta';
+                const qLabel = translations[currentLang].questions_label || 'questions';
+                meta.textContent = `${questionCount} ${qLabel} • ${new Date(test.createdAt).toLocaleDateString()}`;
+                card.appendChild(meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'test-actions';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'view-btn';
+                viewBtn.textContent = translations[currentLang].view_btn || 'View';
+                viewBtn.addEventListener('click', () => {
+                    renderTest(test);
+                    showScreen('create');
+                });
+
+                actions.appendChild(viewBtn);
+                card.appendChild(actions);
+
+                testsGrid.appendChild(card);
+            });
+        }
+
+        // Update analytics
+        function updateAnalytics() {
+            // Update test count
+            statTestsCount.textContent = savedTests.length;
+
+            // Update question count
+            const totalQuestions = savedTests.reduce((acc, test) => {
+                return acc + (test.questions ? test.questions.length : test.cards ? test.cards.length : 0);
+            }, 0);
+            statQuestionsCount.textContent = totalQuestions;
+
+            // Update average score
+            if (testResults.length > 0) {
+                const avgScore = testResults.reduce((acc, result) => acc + result.score, 0) / testResults.length;
+                statAvgScore.textContent = `${Math.round(avgScore)}%`;
+            } else {
+                statAvgScore.textContent = '-';
+            }
+
+            // Show/hide empty state
+            if (savedTests.length === 0) {
+                analyticsEmpty.classList.remove('hidden');
+                document.querySelector('.stats-grid').classList.add('hidden');
+            } else {
+                analyticsEmpty.classList.add('hidden');
+                document.querySelector('.stats-grid').classList.remove('hidden');
+            }
+        }
+
+
+        // Initialize the app
+        initApp();
+    </script>
+</body>
+
+</html>

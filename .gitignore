@@ -1,0 +1,16 @@
+node_modules/
+Source/node_modules/
+
+dist/
+Source/dist/
+Source/dist_release/
+Source/dist_portable/
+Compiled/
+Source/.env
+
+*.log
+*.tmp
+*.cache
+
+.DS_Store
+Thumbs.db

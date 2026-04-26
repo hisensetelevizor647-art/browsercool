@@ -1,0 +1,129 @@
+{
+    "name": "olewser",
+    "productName": "Olewser",
+    "version": "1.0.6",
+    "description": "Olewser - Fast, Dark, Minimal Web Browser",
+    "main": "main.js",
+    "scripts": {
+        "start": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron .\"",
+        "dev": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron . --dev\"",
+        "build": "electron-builder --win",
+        "build:mac": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml",
+        "build:macos": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml"
+    },
+    "build": {
+        "appId": "com.olewser.browser",
+        "productName": "Olewser",
+        "afterSign": "macos-package/scripts/notarize.js",
+        "directories": {
+            "output": "dist",
+            "buildResources": "build"
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "executableName": "Olewser",
+            "icon": "Olewser LOGO/main.ico"
+        },
+        "protocols": [
+            {
+                "name": "Olewser URL",
+                "schemes": [
+                    "olewser",
+                    "http",
+                    "https"
+                ]
+            }
+        ],
+        "fileAssociations": [
+            {
+                "ext": [
+                    "html",
+                    "htm"
+                ],
+                "name": "Olewser HTML Document",
+                "description": "Olewser HTML file",
+                "role": "Editor",
+                "icon": "Olewser LOGO/main.ico"
+            }
+        ],
+        "mac": {
+            "target": [
+                {
+                    "target": "dmg",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
+                },
+                {
+                    "target": "zip",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
+                }
+            ],
+            "category": "public.app-category.utilities",
+            "type": "distribution",
+            "icon": "Olewser LOGO/main.icns",
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "macos-package/entitlements.mac.plist",
+            "entitlementsInherit": "macos-package/entitlements.mac.inherit.plist",
+            "artifactName": "Olewser-${version}-${arch}.${ext}",
+            "extendInfo": {
+                "CFBundleDisplayName": "Olewser",
+                "CFBundleName": "Olewser",
+                "NSCameraUsageDescription": "Olewser needs camera access for AI camera features.",
+                "NSMicrophoneUsageDescription": "Olewser needs microphone access for voice AI features.",
+                "NSDownloadsFolderUsageDescription": "Olewser saves downloaded files to your Downloads folder."
+            }
+        },
+        "dmg": {
+            "icon": "Olewser LOGO/main.icns",
+            "artifactName": "Olewser-${version}-${arch}.dmg"
+        },
+        "files": [
+            "main.js",
+            "preload.js",
+            "src/**/*",
+            "Olewser LOGO/**/*",
+            "icon_backup.ico",
+            "icon_black.png",
+            "icon_cropped.png",
+            "icon_final.png",
+            "node_modules/**/*"
+        ],
+        "extraResources": [],
+        "asar": true,
+        "nsis": {
+            "artifactName": "Olewser-Setup-${version}.exe",
+            "installerIcon": "Olewser LOGO/main.ico",
+            "uninstallerIcon": "Olewser LOGO/main.ico",
+            "installerHeaderIcon": "Olewser LOGO/main.ico",
+            "include": "build/installer.nsh"
+        }
+    },
+    "author": "mono yt developer",
+    "license": "MIT",
+    "devDependencies": {
+        "@electron/notarize": "^2.5.0",
+        "electron": "^30.5.1",
+        "electron-builder": "^25.1.8"
+    },
+    "dependencies": {
+        "better-sqlite3": "^11.9.0",
+        "msedge-tts": "^2.0.4",
+        "path-scurry": "1.10.1",
+        "source-map": "^0.6.1",
+        "source-map-support": "^0.5.21",
+        "ws": "^8.19.0"
+    }
+}

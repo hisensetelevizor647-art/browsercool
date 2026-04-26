@@ -1,0 +1,1292 @@
+﻿<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки — Olewser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: rgba(255, 255, 255, 0.9);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        [data-theme="light"],
+        [data-theme="light"] body {
+            background: #e4e4e2;
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        [data-theme="light"] .section-title {
+            color: rgba(0, 0, 0, 0.4);
+            border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .setting-label {
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .setting-desc {
+            color: rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="light"] .setting-row:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        [data-theme="light"] select {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.12);
+            color: #222;
+        }
+
+        [data-theme="light"] option {
+            background: #fff;
+            color: #222;
+        }
+
+        [data-theme="light"] .toggle {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .color-dot.active {
+            box-shadow: 0 0 0 2px #f5f5f5;
+            border-color: #333;
+        }
+
+        [data-theme="light"] .btn-danger {
+            background: rgba(248, 113, 113, 0.08);
+        }
+
+        [data-theme="light"] .toast {
+            background: #333;
+            color: #fff;
+        }
+
+        [data-theme="light"] .settings-page {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.46));
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 18px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12);
+        }
+
+        [data-theme="light"] .btn-secondary {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.12);
+            color: rgba(0, 0, 0, 0.78);
+        }
+
+        [data-theme="light"] .btn-secondary:hover {
+            background: rgba(0, 0, 0, 0.08);
+            color: rgba(0, 0, 0, 0.92);
+        }
+
+        [data-theme="light"] .about-section {
+            background: rgba(255, 255, 255, 0.56);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .about-meta {
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] .about-update-box {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .about-update-status {
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .about-update-meta {
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] .browser-import-card {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.09);
+        }
+
+        [data-theme="light"] .browser-import-card:hover {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.18);
+        }
+
+        [data-theme="light"] .browser-import-card.selected {
+            border-color: #606060;
+            background: rgba(96, 96, 96, 0.12);
+        }
+
+        [data-theme="light"] .browser-import-status {
+            color: rgba(0, 0, 0, 0.45);
+        }
+
+        .settings-page {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .settings-header img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .settings-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .section {
+            margin-bottom: 36px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-radius: 10px;
+            transition: background 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .setting-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 2px;
+        }
+
+        /* Toggle */
+        .toggle {
+            width: 42px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle.active {
+            background: #808080;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(18px);
+        }
+
+        /* Select */
+        select {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        option {
+            background: #1a1a1a;
+        }
+
+        /* Accent colors */
+        .color-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: white;
+            box-shadow: 0 0 0 2px #0a0a0a;
+        }
+
+        /* Buttons */
+        .btn-danger {
+            padding: 10px 20px;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 8px;
+            color: #f87171;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .about-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .about-section img {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+
+        .about-version {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .about-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .about-update-box {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            text-align: left;
+        }
+
+        .about-update-status {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.92);
+            margin-bottom: 4px;
+        }
+
+        .about-update-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.42);
+            min-height: 14px;
+            line-height: 1.4;
+        }
+
+        .about-update-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-update-main {
+            margin-right: 0;
+            background: rgba(128, 128, 128, 0.2);
+            border-color: rgba(128, 128, 128, 0.45);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .btn-update-main:hover {
+            background: rgba(128, 128, 128, 0.3);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            padding: 0;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+            animation: fadeInHint 0.3s ease-out, fadeOutHint 0.4s ease 1.5s forwards;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        @keyframes fadeInHint {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOutHint {
+            to {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+        }
+
+        /* DATA TRANSFER STYLES */
+        .browser-import-card {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .browser-import-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .browser-import-card.selected {
+            border-color: #808080;
+            background: rgba(128, 128, 128, 0.1);
+        }
+
+        .browser-import-card.disabled {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .browser-import-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .browser-import-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .browser-import-status {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="settings-page" id="settings-page">
+        <div class="settings-header">
+            <img src="../Olewser LOGO/20.png" alt="Olewser">
+            <h1 data-i18n="title">Настройки</h1>
+        </div>
+
+        <!-- GENERAL -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionGeneral">Основные</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="language">Язык</div>
+                    <div class="setting-desc" data-i18n="languageDesc">Язык интерфейса</div>
+                </div>
+                <select data-key="language">
+                    <option value="sk">Slovenčina</option>
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                    <option value="ru">Русский</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="searchEngine">Поисковик</div>
+                    <div class="setting-desc" data-i18n="searchEngineDesc">Поиск по умолчанию</div>
+                </div>
+                <select data-key="searchEngine">
+                    <option value="google">Google</option>
+                    <option value="yandex">Yandex</option>
+                    <option value="duckduckgo">DuckDuckGo</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="setDefaultBrowser">Браузер по умолчанию</div>
+                    <div class="setting-desc" data-i18n="setDefaultBrowserDesc">Открыть системные параметры и выбрать Olewser</div>
+                </div>
+                <button class="btn-secondary" id="btn-default-browser" data-i18n="openDefaultApps" style="margin-right:0">
+                    Открыть параметры
+                </button>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="openAppFolder">Папка приложения</div>
+                    <div class="setting-desc" data-i18n="openAppFolderDesc">Открыть папку профиля Olewser в системе</div>
+                </div>
+                <button class="btn-secondary" id="btn-open-app-folder" data-i18n="openAppFolderAction" style="margin-right:0">
+                    Открыть папку
+                </button>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="restoreSession">Восстанавливать сессию</div>
+                    <div class="setting-desc" data-i18n="restoreSessionDesc">Открывать вкладки прошлой сессии</div>
+                </div>
+                <div class="toggle" data-key="restoreSession"></div>
+            </div>
+        </div>
+        <!-- APPEARANCE -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionAppearance">Оформление</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="theme">Тема</div>
+                </div>
+                <select data-key="theme">
+                    <option value="dark" data-i18n-val="themeDark">Тёмная</option>
+                    <option value="light" data-i18n-val="themeLight">Светлая</option>
+                </select>
+            </div>
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="accentColor">Акцентный цвет</div>
+                </div>
+                <div class="color-row" id="color-row"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="bookmarksBar">Панель закладок</div>
+                    <div class="setting-desc" data-i18n="bookmarksBarDesc">Показывать под адресной строкой</div>
+                </div>
+                <div class="toggle" data-key="showBookmarksBar"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="density">Плотность интерфейса</div>
+                </div>
+                <select data-key="density">
+                    <option value="comfortable" data-i18n-val="densityComfortable">Удобная</option>
+                    <option value="compact" data-i18n-val="densityCompact">Компактная</option>
+                </select>
+            </div>
+        </div>
+        <!-- PRIVACY -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionPrivacy">Приватность и безопасность</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Smooth Scroll</div>
+                    <div class="setting-desc" data-i18n="smoothScrollDesc">Плавная прокрутка на сайтах</div>
+                </div>
+                <div class="toggle" data-key="smoothScroll"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">HTTPS Only</div>
+                    <div class="setting-desc" data-i18n="httpsDesc">Принудительное HTTPS</div>
+                </div>
+                <div class="toggle" data-key="httpsOnly"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Do Not Track</div>
+                    <div class="setting-desc" data-i18n="dntDesc">Отправлять заголовок DNT</div>
+                </div>
+                <div class="toggle" data-key="doNotTrack"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Fingerprint Protection</div>
+                    <div class="setting-desc" data-i18n="fpDesc">Скрытие данных об устройстве</div>
+                </div>
+                <div class="toggle" data-key="fingerprintProtection"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="clearOnExit">Очищать при выходе</div>
+                    <div class="setting-desc" data-i18n="clearOnExitDesc">Удалять данные при закрытии браузера</div>
+                </div>
+                <div class="toggle" data-key="clearOnExit"></div>
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionPerformance">Производительность</div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Frost Mode</div>
+                    <div class="setting-desc" data-i18n="frostDesc">Автозаморозка неактивных вкладок</div>
+                </div>
+                <div class="toggle" data-key="frostEnabled"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label">Low RAM Mode</div>
+                    <div class="setting-desc" data-i18n="lowRamDesc">Агрессивная экономия памяти</div>
+                </div>
+                <div class="toggle" data-key="lowRamMode"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="tabWarning">Предупреждение о вкладках</div>
+                    <div class="setting-desc" data-i18n="tabWarningDesc">Показывать при открытии N+ вкладок</div>
+                </div>
+                <select data-key="tabCountWarning">
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- DATA -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionData">Данные</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+                <button class="btn-secondary" id="btn-clear-history">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span data-i18n="clearHistory">Очистить историю</span>
+                </button>
+                <button class="btn-secondary" id="btn-clear-cache">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+                    </svg>
+                    <span data-i18n="clearCache">Очистить кэш</span>
+                </button>
+                <button class="btn-danger" id="btn-clear-all">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="margin-right:6px;vertical-align:text-bottom">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01" />
+                    </svg>
+                    <span data-i18n="clearAll">Очистить всё</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DATA TRANSFER -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionDataTransfer">Перенос данных</div>
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:16px">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="importData">Импорт из других браузеров</div>
+                    <div class="setting-desc" data-i18n="importDataDesc">Перенести закладки и историю из установленных
+                        браузеров</div>
+                </div>
+                <div id="import-browser-list" style="display:flex;gap:12px;width:100%;flex-wrap:wrap">
+                    <!-- Filled by JS -->
+                </div>
+                <div id="import-progress-area" style="display:none;width:100%;margin-top:4px">
+                    <div class="setting-desc" id="import-status-text" style="color:#808080">Импорт...</div>
+                    <div
+                        style="width:100%;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:8px;overflow:hidden">
+                        <div id="import-progress-bar"
+                            style="width:0%;height:100%;background:#808080;transition:width 0.3s">
+                        </div>
+                    </div>
+                </div>
+                <button id="btn-do-import" disabled
+                    style="padding:10px 24px;border-radius:8px;background:#808080;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;display:none">
+                    Импортировать
+                </button>
+            </div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionAbout">О браузере</div>
+            <div class="about-section">
+                <img src="../Olewser LOGO/20.png" alt="Olewser">
+                <div class="about-version">Olewser <span id="app-version">2.0.0</span></div>
+                <div class="about-meta" id="about-meta"></div>
+                <div class="about-update-box" id="about-update-box">
+                    <div class="about-update-status" id="about-update-status">Checking for updates...</div>
+                    <div class="about-update-meta" id="about-update-meta"></div>
+                    <div class="about-update-actions">
+                        <button class="btn-secondary btn-update-main" id="btn-update-main">Update</button>
+                        <button class="btn-secondary" id="btn-update-check">Check now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ i18n ============
+        const i18n = {
+            ru: {
+                title: 'Настройки',
+                sectionGeneral: 'Основные', language: 'Язык', languageDesc: 'Язык интерфейса',
+                searchEngine: 'Поисковик', searchEngineDesc: 'Поиск по умолчанию',
+                setDefaultBrowser: 'Браузер по умолчанию', setDefaultBrowserDesc: 'Сделать Olewser браузером для ссылок и HTML файлов', openDefaultApps: 'Сделать по умолчанию',
+                restoreSession: 'Восстанавливать сессию', restoreSessionDesc: 'Открывать вкладки прошлой сессии',
+                sectionAppearance: 'Оформление', theme: 'Тема', themeDark: 'Тёмная', themeLight: 'Светлая',
+                accentColor: 'Акцентный цвет', bookmarksBar: 'Панель закладок',
+                bookmarksBarDesc: 'Показывать под адресной строкой',
+                density: 'Плотность интерфейса', densityComfortable: 'Удобная', densityCompact: 'Компактная',
+                sectionPrivacy: 'Приватность и безопасность',
+                smoothScrollDesc: 'Плавная прокрутка на сайтах',
+                httpsDesc: 'Принудительное HTTPS', dntDesc: 'Отправлять заголовок DNT',
+                fpDesc: 'Скрытие данных об устройстве',
+                clearOnExit: 'Очищать при выходе', clearOnExitDesc: 'Удалять данные при закрытии браузера',
+                sectionPerformance: 'Производительность',
+                frostDesc: 'Автозаморозка неактивных вкладок', lowRamDesc: 'Агрессивная экономия памяти',
+                tabWarning: 'Предупреждение о вкладках', tabWarningDesc: 'Показывать при открытии N+ вкладок',
+                sectionData: 'Данные', clearHistory: 'Очистить историю', clearCache: 'Очистить кэш',
+                clearAll: 'Очистить всё', sectionAbout: 'О браузере',
+                saved: 'Сохранено', colorUpdated: 'Цвет обновлён',
+                defaultBrowserOpened: 'Открыты параметры приложений по умолчанию',
+                defaultBrowserSet: 'Olewser установлен браузером по умолчанию',
+                defaultBrowserNeedsConfirm: 'Подтвердите выбор Olewser в системных настройках',
+                openAppFolder: 'Папка приложения',
+                openAppFolderDesc: 'Открыть папку профиля Olewser в системе',
+                openAppFolderAction: 'Открыть папку',
+                appFolderOpened: 'Папка Olewser открыта',
+                appFolderError: 'Не удалось открыть папку Olewser',
+                historyCleared: 'История очищена', cacheCleared: 'Кэш очищен', allCleared: 'Все данные очищены',
+                sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API ключ', aiApiKeyDesc: 'Получите на platform.openai.com',
+                sectionDataTransfer: 'Перенос данных', importData: 'Импорт из других браузеров',
+                importDataDesc: 'Перенести закладки и историю из установленных браузеров',
+                importing: 'Импорт...', importDone: 'Готово! Данные перенесены.', importError: 'Ошибка при импорте',
+                updateChecking: 'Проверка обновлений...',
+                updateAvailable: 'Доступна новая версия {version}',
+                updateDownloading: 'Загрузка обновления {version}',
+                updateReady: 'Обновление {version} готово',
+                updateError: 'Ошибка обновления',
+                updateActionDownload: 'Обновить',
+                updateActionRestart: 'Перезапустить',
+                updateActionRetry: 'Повторить',
+                updateActionChecking: 'Загрузка...',
+                updateActionCheckNow: 'Проверить',
+                updateMetaReady: 'Нажмите «Перезапустить», чтобы установить',
+                updateMetaDownloading: 'Загружено {percent}%',
+                updateMetaLatest: 'У вас установлена последняя версия.',
+            },
+            en: {
+                title: 'Settings',
+                sectionGeneral: 'General', language: 'Language', languageDesc: 'Interface language',
+                searchEngine: 'Search engine', searchEngineDesc: 'Default search',
+                setDefaultBrowser: 'Default browser', setDefaultBrowserDesc: 'Set Olewser as default for links and HTML files', openDefaultApps: 'Set as default',
+                restoreSession: 'Restore session', restoreSessionDesc: 'Open tabs from last session',
+                sectionAppearance: 'Appearance', theme: 'Theme', themeDark: 'Dark', themeLight: 'Light',
+                accentColor: 'Accent color', bookmarksBar: 'Bookmarks bar',
+                bookmarksBarDesc: 'Show below address bar',
+                density: 'Interface density', densityComfortable: 'Comfortable', densityCompact: 'Compact',
+                sectionPrivacy: 'Privacy & Security',
+                smoothScrollDesc: 'Smooth scrolling on websites',
+                httpsDesc: 'Force HTTPS', dntDesc: 'Send DNT header',
+                fpDesc: 'Hide device information',
+                clearOnExit: 'Clear on exit', clearOnExitDesc: 'Delete data when browser closes',
+                sectionPerformance: 'Performance',
+                frostDesc: 'Auto-freeze inactive tabs', lowRamDesc: 'Aggressive memory saving',
+                tabWarning: 'Tab warning', tabWarningDesc: 'Show when N+ tabs are open',
+                sectionData: 'Data', clearHistory: 'Clear history', clearCache: 'Clear cache',
+                clearAll: 'Clear all', sectionAbout: 'About',
+                saved: 'Saved', colorUpdated: 'Color updated',
+                defaultBrowserOpened: 'Default apps settings opened',
+                defaultBrowserSet: 'Olewser is now set as default browser',
+                defaultBrowserNeedsConfirm: 'Please confirm Olewser in system settings',
+                openAppFolder: 'App folder',
+                openAppFolderDesc: 'Open Olewser profile folder in the system',
+                openAppFolderAction: 'Open folder',
+                appFolderOpened: 'Olewser folder opened',
+                appFolderError: 'Failed to open Olewser folder',
+                historyCleared: 'History cleared', cacheCleared: 'Cache cleared', allCleared: 'All data cleared',
+                sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API Key', aiApiKeyDesc: 'Get at platform.openai.com',
+                sectionDataTransfer: 'Data Transfer', importData: 'Import from other browsers',
+                importDataDesc: 'Import bookmarks and history from installed browsers',
+                importing: 'Importing...', importDone: 'Done! Data imported.', importError: 'Import error',
+                updateChecking: 'Checking for updates...',
+                updateAvailable: 'New version {version} is available',
+                updateDownloading: 'Downloading update {version}',
+                updateReady: 'Update {version} is ready',
+                updateError: 'Update error',
+                updateActionDownload: 'Update',
+                updateActionRestart: 'Restart',
+                updateActionRetry: 'Retry',
+                updateActionChecking: 'Downloading...',
+                updateActionCheckNow: 'Check now',
+                updateMetaReady: 'Press Restart to install',
+                updateMetaDownloading: 'Downloaded {percent}%',
+                updateMetaLatest: 'You already have the latest version.',
+            },
+            uk: {
+                title: 'Налаштування',
+                sectionGeneral: 'Основні', language: 'Мова', languageDesc: 'Мова інтерфейсу',
+                searchEngine: 'Пошук', searchEngineDesc: 'Пошук за замовчуванням',
+                setDefaultBrowser: 'Браузер за замовчуванням', setDefaultBrowserDesc: 'Встановити Olewser типовим для посилань і HTML файлів', openDefaultApps: 'Зробити типовим',
+                restoreSession: 'Відновлювати сесію', restoreSessionDesc: 'Відкривати вкладки минулої сесії',
+                sectionAppearance: 'Оформлення', theme: 'Тема', themeDark: 'Темна', themeLight: 'Світла',
+                accentColor: 'Акцентний колір', bookmarksBar: 'Панель закладок',
+                bookmarksBarDesc: 'Показувати під адресним рядком',
+                density: 'Щільність інтерфейсу', densityComfortable: 'Зручна', densityCompact: 'Компактна',
+                sectionPrivacy: 'Приватність та безпека',
+                smoothScrollDesc: 'Плавна прокрутка на сайтах',
+                httpsDesc: 'Примусовий HTTPS', dntDesc: 'Надсилати заголовок DNT',
+                fpDesc: 'Приховування даних про пристрій',
+                clearOnExit: 'Очищати при виході', clearOnExitDesc: 'Видаляти дані при закритті браузера',
+                sectionPerformance: 'Продуктивність',
+                frostDesc: 'Автозаморозка неактивних вкладок', lowRamDesc: 'Агресивна економія пам\'яті',
+                tabWarning: 'Попередження про вкладки', tabWarningDesc: 'Показувати при відкритті N+ вкладок',
+                sectionData: 'Дані', clearHistory: 'Очистити історію', clearCache: 'Очистити кеш',
+                clearAll: 'Очистити все', sectionAbout: 'Про браузер',
+                saved: 'Збережено', colorUpdated: 'Колір оновлено',
+                defaultBrowserOpened: 'Відкрито параметри програм за замовчуванням',
+                defaultBrowserSet: 'Olewser встановлено браузером за замовчуванням',
+                defaultBrowserNeedsConfirm: 'Підтвердьте вибір Olewser у налаштуваннях системи',
+                openAppFolder: 'Папка застосунку',
+                openAppFolderDesc: 'Відкрити папку профілю Olewser у системі',
+                openAppFolderAction: 'Відкрити папку',
+                appFolderOpened: 'Папку Olewser відкрито',
+                appFolderError: 'Не вдалося відкрити папку Olewser',
+                historyCleared: 'Історію очищено', cacheCleared: 'Кеш очищено', allCleared: 'Всі дані очищено',
+                sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API ключ', aiApiKeyDesc: 'Отримайте на platform.openai.com',
+                sectionDataTransfer: 'Перенесення даних', importData: 'Імпорт з інших браузерів',
+                importDataDesc: 'Перенести закладки та історію з встановлених браузерів',
+                importing: 'Імпорт...', importDone: 'Готово! Дані перенесено.', importError: 'Помилка при імпорті',
+                updateChecking: 'Перевірка оновлень...',
+                updateAvailable: 'Доступна нова версія {version}',
+                updateDownloading: 'Завантаження оновлення {version}',
+                updateReady: 'Оновлення {version} готове',
+                updateError: 'Помилка оновлення',
+                updateActionDownload: 'Оновити',
+                updateActionRestart: 'Перезапустити',
+                updateActionRetry: 'Спробувати знову',
+                updateActionChecking: 'Завантаження...',
+                updateActionCheckNow: 'Перевірити',
+                updateMetaReady: 'Натисніть «Перезапустити» для встановлення',
+                updateMetaDownloading: 'Завантажено {percent}%',
+                updateMetaLatest: 'У вас встановлена остання версія.',
+            },
+            sk: {
+                title: 'Nastavenia',
+                sectionGeneral: 'Všeobecné', language: 'Jazyk', languageDesc: 'Jazyk rozhrania',
+                searchEngine: 'Vyhľadávač', searchEngineDesc: 'Predvolené vyhľadávanie',
+                setDefaultBrowser: 'Predvolený prehliadač', setDefaultBrowserDesc: 'Nastaviť Olewser ako predvolený pre odkazy a HTML súbory', openDefaultApps: 'Nastaviť ako predvolený',
+                restoreSession: 'Obnoviť reláciu', restoreSessionDesc: 'Otvoriť karty z minulej relácie',
+                sectionAppearance: 'Vzhľad', theme: 'Téma', themeDark: 'Tmavá', themeLight: 'Svetlá',
+                accentColor: 'Akcentná farba', bookmarksBar: 'Panel záložiek',
+                bookmarksBarDesc: 'Zobraziť pod adresným riadkom',
+                density: 'Hustota rozhrania', densityComfortable: 'Pohodlná', densityCompact: 'Kompaktná',
+                sectionPrivacy: 'Súkromie a bezpečnosť',
+                smoothScrollDesc: 'Plynulé posúvanie na stránkach',
+                httpsDesc: 'Vynútiť HTTPS', dntDesc: 'Odoslať hlavičku DNT',
+                fpDesc: 'Skrytie údajov o zariadení',
+                clearOnExit: 'Vymazať pri ukončení', clearOnExitDesc: 'Vymazať údaje pri zatvorení prehliadača',
+                sectionPerformance: 'Výkon',
+                frostDesc: 'Automatické zmrazenie neaktívnych kariet', lowRamDesc: 'Agresívna úspora pamäte',
+                tabWarning: 'Upozornenie na karty', tabWarningDesc: 'Zobraziť pri otvorení N+ kariet',
+                sectionData: 'Údaje', clearHistory: 'Vymazať históriu', clearCache: 'Vymazať vyrovnávaciu pamäť',
+                clearAll: 'Vymazať všetko', sectionAbout: 'O prehliadači',
+                saved: 'Uložené', colorUpdated: 'Farba aktualizovaná',
+                defaultBrowserOpened: 'Otvorené nastavenia predvolených aplikácií',
+                defaultBrowserSet: 'Olewser je nastavený ako predvolený prehliadač',
+                defaultBrowserNeedsConfirm: 'Potvrďte Olewser v systémových nastaveniach',
+                openAppFolder: 'Priečinok aplikácie',
+                openAppFolderDesc: 'Otvoriť profilový priečinok Olewser v systéme',
+                openAppFolderAction: 'Otvoriť priečinok',
+                appFolderOpened: 'Priečinok Olewser bol otvorený',
+                appFolderError: 'Nepodarilo sa otvoriť priečinok Olewser',
+                historyCleared: 'História vymazaná', cacheCleared: 'Vyrovnávacia pamäť vymazaná', allCleared: 'Všetky údaje vymazané',
+                sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API kľúč', aiApiKeyDesc: 'Získajte na platform.openai.com',
+                sectionDataTransfer: 'Prenos údajov', importData: 'Import z iných prehliadačov',
+                importDataDesc: 'Importovať záložky a históriu z nainštalovaných prehliadačov',
+                importing: 'Importujem...', importDone: 'Hotovo! Údaje boli importované.', importError: 'Chyba pri importe',
+                updateChecking: 'Kontrolujem aktualizácie...',
+                updateAvailable: 'Nová verzia {version} je dostupná',
+                updateDownloading: 'Sťahuje sa aktualizácia {version}',
+                updateReady: 'Aktualizácia {version} je pripravená',
+                updateError: 'Chyba aktualizácie',
+                updateActionDownload: 'Aktualizovať',
+                updateActionRestart: 'Reštartovať',
+                updateActionRetry: 'Skúsiť znova',
+                updateActionChecking: 'Sťahovanie...',
+                updateActionCheckNow: 'Skontrolovať',
+                updateMetaReady: 'Stlačte „Reštartovať“ na inštaláciu',
+                updateMetaDownloading: 'Stiahnuté {percent}%',
+                updateMetaLatest: 'Máte najnovšiu verziu.',
+            }
+        };
+
+        function normalizeLanguageCode(lang) {
+            const raw = String(lang || '').trim().toLowerCase().replace('_', '-');
+            const base = raw.split('-')[0];
+            if (base === 'ua') return 'uk';
+            if (base === 'uk' || base === 'ru' || base === 'en' || base === 'sk') return base;
+            return 'sk';
+        }
+
+        function getCurrentLang() {
+            return normalizeLanguageCode(settings.language);
+        }
+
+        function t(key) { return (i18n[getCurrentLang()] || i18n.sk)[key] || key; }
+
+        function fillTemplate(template, values) {
+            return String(template || '').replace(/\{(\w+)\}/g, (_, key) => {
+                return Object.prototype.hasOwnProperty.call(values || {}, key) ? String(values[key]) : '';
+            });
+        }
+
+        function applyLanguage() {
+            const dict = i18n[getCurrentLang()] || i18n.sk;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (dict[key]) el.textContent = dict[key];
+            });
+            document.querySelectorAll('[data-i18n-val]').forEach(el => {
+                const key = el.dataset.i18nVal;
+                if (dict[key]) el.textContent = dict[key];
+            });
+        }
+
+        // ============ Settings logic ============
+        const accentColors = [
+            { name: 'gray', val: '#808080' },
+            { name: 'blue', val: '#3b82f6' },
+            { name: 'green', val: '#22c55e' },
+            { name: 'purple', val: '#8b5cf6' },
+            { name: 'red', val: '#ef4444' },
+            { name: 'orange', val: '#f97316' },
+            { name: 'pink', val: '#ec4899' },
+            { name: 'cyan', val: '#06b6d4' },
+        ];
+
+        let settings = {};
+        let updateState = null;
+
+        function showToast(msg) {
+            const old = document.querySelector('.toast');
+            if (old) old.remove();
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2000);
+        }
+
+        function getUpdatePercent(update) {
+            const total = Number(update?.downloadTotalBytes || 0);
+            const received = Number(update?.downloadReceivedBytes || 0);
+            if (!total || total <= 0) return 0;
+            return Math.max(0, Math.min(100, Math.round((received / total) * 100)));
+        }
+
+        function getUpdateStatusTitle() {
+            const status = String(updateState?.status || 'idle');
+            const version = String(updateState?.latestVersion || '');
+            if (status === 'available') return fillTemplate(t('updateAvailable'), { version });
+            if (status === 'downloading') return fillTemplate(t('updateDownloading'), { version });
+            if (status === 'ready') return fillTemplate(t('updateReady'), { version });
+            if (status === 'error') return t('updateError');
+            if (status === 'checking' || status === 'installing') return t('updateChecking');
+            return t('updateMetaLatest');
+        }
+
+        function getUpdateMetaText() {
+            const status = String(updateState?.status || 'idle');
+            if (status === 'downloading') {
+                return fillTemplate(t('updateMetaDownloading'), { percent: getUpdatePercent(updateState) });
+            }
+            if (status === 'ready') return t('updateMetaReady');
+            if (status === 'error') return String(updateState?.error || '');
+            const note = String(updateState?.notes || '');
+            return note || '';
+        }
+
+        function getUpdateMainActionLabel() {
+            const status = String(updateState?.status || 'idle');
+            if (status === 'available') return t('updateActionDownload');
+            if (status === 'ready') return t('updateActionRestart');
+            if (status === 'downloading' || status === 'checking' || status === 'installing') return t('updateActionChecking');
+            if (status === 'error') return t('updateActionRetry');
+            return t('updateActionDownload');
+        }
+
+        function renderUpdateSection() {
+            const statusEl = document.getElementById('about-update-status');
+            const metaEl = document.getElementById('about-update-meta');
+            const mainBtn = document.getElementById('btn-update-main');
+            const checkBtn = document.getElementById('btn-update-check');
+            if (!statusEl || !metaEl || !mainBtn || !checkBtn) return;
+
+            const status = String(updateState?.status || 'idle');
+            statusEl.textContent = getUpdateStatusTitle();
+            metaEl.textContent = getUpdateMetaText();
+
+            mainBtn.textContent = getUpdateMainActionLabel();
+            mainBtn.disabled = (status === 'downloading' || status === 'checking' || status === 'installing');
+            checkBtn.textContent = t('updateActionCheckNow');
+            checkBtn.disabled = (status === 'checking' || status === 'installing');
+
+            const showMainAction = ['available', 'downloading', 'ready', 'error', 'installing'].includes(status);
+            mainBtn.style.display = showMainAction ? '' : 'none';
+        }
+
+        async function runMainUpdateAction() {
+            if (!window.olewser?.updates) return;
+            const status = String(updateState?.status || 'idle');
+            try {
+                if (status === 'available') {
+                    await window.olewser.updates.startDownload();
+                } else if (status === 'ready') {
+                    await window.olewser.updates.install();
+                } else if (status === 'error') {
+                    await window.olewser.updates.check(true);
+                } else if (status !== 'downloading' && status !== 'checking' && status !== 'installing') {
+                    await window.olewser.updates.check(true);
+                }
+            } catch (e) {
+                showToast(String(e?.message || t('updateError')));
+            }
+        }
+
+        async function initUpdateSection() {
+            const mainBtn = document.getElementById('btn-update-main');
+            const checkBtn = document.getElementById('btn-update-check');
+            if (!mainBtn || !checkBtn || !window.olewser?.updates) return;
+
+            mainBtn.addEventListener('click', runMainUpdateAction);
+            checkBtn.addEventListener('click', async () => {
+                try {
+                    await window.olewser.updates.check(true);
+                } catch (e) {
+                    showToast(String(e?.message || t('updateError')));
+                }
+            });
+
+            window.olewser.updates.onState((nextState) => {
+                updateState = nextState || {};
+                renderUpdateSection();
+            });
+
+            try {
+                updateState = await window.olewser.updates.getState();
+            } catch (_) {
+                updateState = { status: 'error', error: t('updateError') };
+            }
+            renderUpdateSection();
+            window.olewser.updates.check(false).catch(() => { });
+        }
+
+        async function loadSettings() {
+            settings = await window.olewser.settings.load();
+            const normalized = normalizeLanguageCode(settings.language);
+            if (settings.language !== normalized) {
+                settings.language = normalized;
+                await window.olewser.settings.save(settings);
+            }
+            applyToUI();
+            await initImportSection();
+        }
+
+        function applyToUI() {
+            document.documentElement.setAttribute('data-theme', settings.theme || 'dark');
+            // Selects
+            document.querySelectorAll('select[data-key]').forEach(sel => {
+                const key = sel.dataset.key;
+                if (key === 'language') {
+                    sel.value = normalizeLanguageCode(settings.language);
+                } else {
+                    sel.value = settings[key] || sel.options[0].value;
+                }
+            });
+            // Toggles
+            document.querySelectorAll('.toggle[data-key]').forEach(tog => {
+                tog.classList.toggle('active', !!settings[tog.dataset.key]);
+            });
+            // Text inputs
+            document.querySelectorAll('input[data-key]').forEach(inp => {
+                inp.value = settings[inp.dataset.key] || '';
+            });
+            // Color dots
+            const cr = document.getElementById('color-row');
+            cr.innerHTML = '';
+            accentColors.forEach(c => {
+                const dot = document.createElement('div');
+                dot.className = 'color-dot' + (settings.accentColor === c.val ? ' active' : '');
+                dot.style.background = c.val;
+                dot.title = c.name;
+                dot.addEventListener('click', async () => {
+                    settings.accentColor = c.val;
+                    await window.olewser.settings.save(settings);
+                    cr.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    showToast(t('colorUpdated'));
+                });
+                cr.appendChild(dot);
+            });
+            // Apply language
+            applyLanguage();
+            renderUpdateSection();
+        }
+
+        // Bind select changes
+        document.querySelectorAll('select[data-key]').forEach(sel => {
+            sel.addEventListener('change', async () => {
+                let val = sel.value;
+                if (sel.dataset.key === 'language') val = normalizeLanguageCode(val);
+                if (sel.dataset.key === 'tabCountWarning') val = parseInt(val);
+                settings[sel.dataset.key] = val;
+                if (sel.dataset.key === 'theme') {
+                    document.documentElement.setAttribute('data-theme', val);
+                }
+                if (sel.dataset.key === 'language') {
+                    applyLanguage();
+                }
+                await window.olewser.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        // Bind toggle clicks
+        document.querySelectorAll('.toggle[data-key]').forEach(tog => {
+            tog.addEventListener('click', async () => {
+                settings[tog.dataset.key] = !settings[tog.dataset.key];
+                tog.classList.toggle('active', settings[tog.dataset.key]);
+                await window.olewser.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        // Bind input changes (text inputs like API key)
+        document.querySelectorAll('input[data-key]').forEach(inp => {
+            inp.addEventListener('change', async () => {
+                settings[inp.dataset.key] = inp.value.trim();
+                await window.olewser.settings.save(settings);
+                showToast(t('saved'));
+            });
+        });
+
+        async function initImportSection() {
+            const list = document.getElementById('import-browser-list');
+            const btn = document.getElementById('btn-do-import');
+            if (!list) return;
+
+            const browsers = await window.olewser.import.detect();
+            const icons = { chrome: '🌐', yandex: '🔍' };
+            const names = { chrome: 'Chrome', yandex: 'Yandex' };
+
+            list.innerHTML = '';
+            let selectedBrowser = null;
+
+            for (const [id, info] of Object.entries(browsers)) {
+                const card = document.createElement('div');
+                card.className = 'browser-import-card' + (info.exists ? '' : ' disabled');
+                card.innerHTML = `
+                    <span class="browser-import-icon">${icons[id] || '🌐'}</span>
+                    <div class="browser-import-name">${names[id] || id}</div>
+                    <div class="browser-import-status">${info.exists ? 'Found' : 'Not found'}</div>
+                `;
+
+                if (info.exists) {
+                    card.onclick = () => {
+                        list.querySelectorAll('.browser-import-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        selectedBrowser = id;
+                        btn.disabled = false;
+                        btn.style.display = 'block';
+                    };
+                }
+                list.appendChild(card);
+            }
+
+            btn.onclick = async () => {
+                if (!selectedBrowser) return;
+                const progressArea = document.getElementById('import-progress-area');
+                const progressBar = document.getElementById('import-progress-bar');
+                const statusText = document.getElementById('import-status-text');
+
+                btn.style.display = 'none';
+                progressArea.style.display = 'block';
+                progressBar.style.width = '20%';
+                statusText.textContent = t('importing');
+
+                try {
+                    await window.olewser.import.bookmarks(selectedBrowser);
+                    progressBar.style.width = '60%';
+                    await window.olewser.import.history(selectedBrowser);
+                    progressBar.style.width = '100%';
+                    statusText.textContent = t('importDone');
+                    showToast(t('importDone'));
+                } catch (e) {
+                    console.error('Import failed:', e);
+                    statusText.textContent = t('importError');
+                    showToast(t('importError'));
+                }
+
+                setTimeout(() => {
+                    progressArea.style.display = 'none';
+                    btn.disabled = true;
+                }, 3000);
+            };
+        }
+
+        const defaultBrowserBtn = document.getElementById('btn-default-browser');
+        if (defaultBrowserBtn) {
+            defaultBrowserBtn.addEventListener('click', async () => {
+                try {
+                    const result = await window.olewser.app.setDefaultBrowser();
+                    if (result && result.isDefault) {
+                        showToast(t('defaultBrowserSet'));
+                        return;
+                    }
+                    await window.olewser.app.openDefaultAppsSettings();
+                    showToast(result && result.needsSystemConfirmation ? t('defaultBrowserNeedsConfirm') : t('defaultBrowserOpened'));
+                } catch (e) {
+                    try {
+                        await window.olewser.app.openDefaultAppsSettings();
+                        showToast(t('defaultBrowserOpened'));
+                    } catch (_) {
+                        showToast(t('defaultBrowserNeedsConfirm'));
+                    }
+                }
+            });
+        }
+
+        const openAppFolderBtn = document.getElementById('btn-open-app-folder');
+        if (openAppFolderBtn) {
+            openAppFolderBtn.addEventListener('click', async () => {
+                try {
+                    const result = await window.olewser.app.openUserDataFolder();
+                    if (result && result.ok) showToast(t('appFolderOpened'));
+                    else showToast(t('appFolderError'));
+                } catch (_) {
+                    showToast(t('appFolderError'));
+                }
+            });
+        }
+
+        // Data buttons
+        document.getElementById('btn-clear-history').addEventListener('click', async () => {
+            await window.olewser.history.clear();
+            showToast(t('historyCleared'));
+        });
+        document.getElementById('btn-clear-cache').addEventListener('click', async () => {
+            await window.olewser.data.clearCache();
+            showToast(t('cacheCleared'));
+        });
+        document.getElementById('btn-clear-all').addEventListener('click', async () => {
+            await window.olewser.data.clearAll();
+            showToast(t('allCleared'));
+        });
+
+        // About
+        async function loadAbout() {
+            try {
+                const info = await window.olewser.app.getInfo();
+                document.getElementById('app-version').textContent = info.version;
+                const aboutMeta = document.getElementById('about-meta');
+                if (aboutMeta) {
+                    aboutMeta.textContent = '';
+                    aboutMeta.style.display = 'none';
+                }
+            } catch (e) { }
+        }
+
+        loadSettings();
+        loadAbout();
+        initUpdateSection();
+    </script>
+</body>
+
+</html>
+

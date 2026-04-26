@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OleksandrAi - Voice Mode</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="auth.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #000;
+            color: white;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 100px;
+            min-height: 100vh;
+            min-height: 100svh;
+            position: relative;
+        }
+
+        /* --- AVATAR STYLES --- */
+        .avatar-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            cursor: pointer;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: contain;
+            background: white;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            padding: 25px;
+            transform: scale(1);
+        }
+
+        .avatar-container:hover .avatar-img {
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.05) rotateY(10deg) rotateX(5deg);
+            box-shadow: 0 20px 50px rgba(59, 130, 246, 0.3);
+        }
+
+        .speaking .avatar-img {
+            /* animation: avatar-breath 1.5s ease-in-out infinite alternate; */
+            border-color: #60a5fa;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+            transform: scale(1.05);
+            /* Slight static scale to show active state */
+        }
+
+        @keyframes avatar-breath {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.08);
+            }
+        }
+
+        /* Rings Animation */
+        .voice-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            margin-top: -100px;
+            margin-left: -100px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1);
+        }
+
+        .listening .voice-ring {
+            animation: pulse-ring 2.5s ease-out infinite;
+        }
+
+        .speaking .voice-ring {
+            border-color: rgba(96, 165, 250, 0.6);
+            border-width: 3px;
+            /* animation: pulse-ring-speaking 2s ease-out infinite; */
+            transform: scale(1.1);
+            /* Static scale for visibility */
+            opacity: 0.8;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(2.0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulse-ring-speaking {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+                border-width: 3px;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+                border-width: 0px;
+            }
+        }
+
+        /* --- TOOLBARS & BUTTONS --- */
+        .bottom-toolbar {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 24px;
+            z-index: 20;
+            width: max-content;
+        }
+
+        .toolbar-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .toolbar-btn.exit {
+            background: #ef4444;
+            border: none;
+        }
+
+        .toolbar-btn.exit:hover {
+            background: #dc2626;
+        }
+
+        /* --- TEXT & STATUS --- */
+        #transcript {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 1.5rem;
+            max-width: 85%;
+            line-height: 1.5;
+            min-height: 40px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            font-weight: 500;
+        }
+
+        #status {
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 16px;
+            border-radius: 20px;
+        }
+
+        /* --- MODALS & MENUS --- */
+        #avatar-modal {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .settings-btn {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(90deg);
+        }
+
+        .avatar-option {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px !important;
+        }
+
+        .avatar-option img {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: white;
+            border-radius: 16px;
+            padding: 4px;
+        }
+
+        .avatar-option:hover img {
+            transform: scale(1.15) translateY(-5px);
+        }
+
+        /* Visualizer */
+        .visualizer-container {
+            display: none;
+            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            position: absolute;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .speaking .visualizer-container {
+            display: flex;
+        }
+
+        .bar {
+            width: 8px;
+            height: 25px;
+            /* Fixed height instead of animation */
+            background: #60a5fa;
+            border-radius: 8px;
+            /* animation: bounce 0.5s ease-in-out infinite alternate; */
+            box-shadow: 0 0 15px #3b82f6;
+        }
+
+        @keyframes bounce {
+            0% {
+                height: 10px;
+                opacity: 0.5;
+            }
+
+            100% {
+                height: 50px;
+                opacity: 1;
+            }
+        }
+
+        .bar:nth-child(1) {
+            animation-delay: 0.0s;
+        }
+
+        .bar:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .bar:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .bar:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .bar:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        /* Subtitles */
+        #subtitle-overlay {
+            position: fixed;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 90%;
+            width: auto;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 1.25rem;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #subtitle-overlay.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        /* Input Panel */
+        #text-input-panel {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 550px;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.3s, opacity 0.3s;
+            z-index: 40;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        #text-input-voice {
+            background: transparent;
+            border: none;
+            color: white;
+            flex: 1;
+            padding: 12px;
+            font-size: 1.05rem;
+            outline: none;
+        }
+
+        #send-text-voice {
+            background: white;
+            color: black;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #send-text-voice:hover {
+            transform: scale(1.1);
+            background: #e0e7ff;
+        }
+
+        .hidden-panel {
+            transform: translate(-50%, 50px) !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Attachments */
+        #attachment-preview {
+            border-radius: 24px;
+            bottom: 200px;
+        }
+
+        #plus-menu {
+            border-radius: 24px;
+            bottom: 120px;
+        }
+
+        /* Switch Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked+.slider {
+            background-color: #3b82f6;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Camera Overlay for Object Detection */
+        #camera-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #camera-feed-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
+        }
+
+        #camera-video {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+            /* Mirror effect */
+        }
+
+        #camera-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            /* Mirror canvas too */
+        }
+
+        .camera-ui-bottom {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .cam-btn {
+            background: white;
+            color: black;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .cam-btn:active {
+            transform: scale(0.95);
+        }
+
+        .cam-btn.capture {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="listening">
+
+    <button class="settings-btn" id="voice-settings-btn" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    </button>
+
+    <div class="avatar-container relative group">
+        <div class="voice-ring" style="animation-delay: 0s;"></div>
+        <div class="voice-ring" style="animation-delay: 0.6s;"></div>
+        <div class="voice-ring" style="animation-delay: 1.2s;"></div>
+
+        <div id="current-avatar" class="avatar-img flex items-center justify-center overflow-hidden">
+        </div>
+
+        <div class="visualizer-container">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+    </div>
+
+    <div id="status">Pripravený</div>
+    <div id="transcript" class="flex flex-col items-center justify-center"></div>
+    <div id="sources-container" class="flex flex-wrap gap-2 justify-center mt-4 mb-32"></div>
+
+    <div id="attachment-preview"
+        class="fixed hidden left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-xl p-4 border border-white/20 z-20 shadow-2xl transition-all rounded-[32px]">
+        <div id="attachments-container" class="flex gap-3 max-w-[80vw] overflow-x-auto p-1"></div>
+        <button id="clear-attachment"
+            class="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg transition-colors border-2 border-gray-900">✕</button>
+    </div>
+
+    <div id="plus-menu"
+        class="fixed left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-xl border border-white/15 p-4 hidden grid-cols-3 gap-4 z-30 shadow-2xl transition-all transform scale-95 opacity-0 rounded-[32px]">
+        <button class="menu-item flex flex-col items-center gap-2 p-3 hover:bg-white/10 rounded-2xl transition"
+            data-action="file">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M11.35 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v5.35" />
+                <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+                <path d="M14 19h6" />
+                <path d="M17 16v6" />
+            </svg>
+            <span class="text-xs" data-i18n="file">Súbor</span>
+        </button>
+        <button class="menu-item flex flex-col items-center gap-2 p-3 hover:bg-white/10 rounded-2xl transition"
+            data-action="search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+            </svg>
+            <span class="text-xs" data-i18n="search">Hľadať</span>
+        </button>
+        <button class="menu-item flex flex-col items-center gap-2 p-3 hover:bg-white/10 rounded-2xl transition"
+            data-action="link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            <span class="text-xs" data-i18n="link">Odkaz</span>
+        </button>
+    </div>
+
+    <div class="bottom-toolbar">
+        <button class="toolbar-btn" id="btn-add" title="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="btn-camera" title="Smart Camera">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="btn-screen" title="Screen Analysis">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8" />
+                <path d="M12 17v4" />
+            </svg>
+        </button>
+        <button class="toolbar-btn exit" id="btn-exit" title="Exit">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+        </button>
+    </div>
+
+    <div id="avatar-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/20 p-6 w-full max-w-sm text-white shadow-2xl rounded-[32px]">
+            <h3 class="text-xl font-bold mb-6 text-center" data-i18n="settingsTitle">Nastavenia</h3>
+
+            <div class="grid grid-cols-3 gap-6 mb-6">
+                <button
+                    class="avatar-option flex flex-col items-center gap-3 p-3 border border-white/10 hover:bg-white/10 transition group"
+                    data-type="arduino">
+                    <img src="https://cdn3d.iconscout.com/3d/premium/thumb/arduino-uno-9053368-7455823.png?f=webp"
+                        onerror="this.src='https://cdn-icons-png.flaticon.com/512/9662/9662366.png'"
+                        class="w-16 h-16 object-contain filter drop-shadow-md">
+                    <p class="text-xs font-medium opacity-70 group-hover:opacity-100">Arduino 3D</p>
+                </button>
+                <button
+                    class="avatar-option flex flex-col items-center gap-3 p-3 border border-white/10 hover:bg-white/10 transition group"
+                    data-type="robot">
+                    <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png"
+                        class="w-16 h-16 object-contain filter drop-shadow-md">
+                    <p class="text-xs font-medium opacity-70 group-hover:opacity-100">Robot 3D</p>
+                </button>
+                <button
+                    class="avatar-option flex flex-col items-center gap-3 p-3 border border-white/10 hover:bg-white/10 transition group"
+                    data-type="brain">
+                    <img src="https://cdn-icons-png.flaticon.com/512/6166/6166946.png"
+                        class="w-16 h-16 object-contain filter drop-shadow-md">
+                    <p class="text-xs font-medium opacity-70 group-hover:opacity-100">AI Brain</p>
+                </button>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-[20px]">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-green-400">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M2 12h20" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        <span class="text-sm font-medium" data-i18n="languageLabel">Jazyk / Language</span>
+                    </div>
+                    <select id="language-select"
+                        class="bg-black/50 border border-white/20 rounded-lg text-xs py-1 px-2 outline-none">
+                        <option value="sk">Slovenčina</option>
+                        <option value="uk">Українська</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-[20px]">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-red-400">
+                            <path
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span class="text-sm font-medium" data-i18n="interruptionLabel">Переривання</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-interruption">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-[20px]">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-blue-400">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <path d="M7 10h10"></path>
+                            <path d="M7 14h10"></path>
+                        </svg>
+                        <span class="text-sm font-medium" data-i18n="subtitlesLabel">Titulky</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-subtitles">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-[20px]">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="text-purple-400">
+                            <rect x="3" y="11" width="18" height="10" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span class="text-sm font-medium" data-i18n="inputLabel">Textový vstup</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-input-panel">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button id="close-avatar-modal" data-i18n="closeBtn"
+                class="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-[20px] transition font-medium">Zavrieť</button>
+        </div>
+    </div>
+
+    <div id="camera-overlay">
+        <div id="camera-feed-container">
+            <video id="camera-video" autoplay muted playsinline></video>
+            <canvas id="camera-canvas"></canvas>
+        </div>
+        <div class="camera-ui-bottom">
+            <button class="cam-btn" id="close-camera" data-i18n="closeBtn">Zavrieť</button>
+            <button class="cam-btn capture" id="capture-image" data-i18n="captureBtn">Odfotiť</button>
+        </div>
+    </div>
+
+    <div id="subtitle-overlay"></div>
+
+    <div id="text-input-panel" class="hidden-panel">
+        <input type="text" id="text-input-voice" placeholder="Napíšte správu...">
+        <button id="send-text-voice">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        </button>
+    </div>
+
+    <input type="file" id="avatar-input" class="hidden" accept="image/*">
+    <input type="file" id="file-input-voice" class="hidden" accept="image/*,application/pdf,text/*">
+
+    <script>
+        // --- CONFIGURATION ---
+        const OPENAI_API_KEY = (window.olewser && window.olewser._settings && window.olewser._settings.aiApiKey) || "";
+
+        // --- TRANSLATIONS ---
+        const translations = {
+            uk: {
+                statusReady: "Готовий",
+                statusListening: "Слухаю...",
+                statusThinking: "Думаю...",
+                statusSpeaking: "Говорю...",
+                placeholder: "Напишіть повідомлення...",
+                dataAdded: "Дані додано. Запитуйте!",
+                micBlocked: "Мікрофон заблоковано",
+                error: "Помилка. Спробуйте ще раз.",
+                settingsTitle: "Налаштування",
+                languageLabel: "Мова",
+                interruptionLabel: "Переривання",
+                subtitlesLabel: "Субтитри",
+                inputLabel: "Текстовий ввід",
+                closeBtn: "Закрити",
+                captureBtn: "Зробити фото",
+                file: "Файл",
+                search: "Пошук",
+                link: "Лінк",
+                linkPrompt: "Введіть посилання для аналізу:",
+                searchPrompt: "Скажіть що знайти..."
+            },
+            en: {
+                statusReady: "Ready",
+                statusListening: "Listening...",
+                statusThinking: "Thinking...",
+                statusSpeaking: "Speaking...",
+                placeholder: "Type a message...",
+                dataAdded: "Data added. Ask me!",
+                micBlocked: "Mic Blocked",
+                error: "Error. Try again.",
+                settingsTitle: "Settings",
+                languageLabel: "Language",
+                interruptionLabel: "Interruption",
+                subtitlesLabel: "Subtitles",
+                inputLabel: "Text Input",
+                closeBtn: "Close",
+                captureBtn: "Take Photo",
+                file: "File",
+                search: "Search",
+                link: "Link",
+                linkPrompt: "Enter URL for analysis:",
+                searchPrompt: "Ask me to search..."
+            },
+            sk: {
+                statusReady: "Pripravený",
+                statusListening: "Počúvam...",
+                statusThinking: "Rozmýšľam...",
+                statusSpeaking: "Hovorím...",
+                placeholder: "Napíšte správu...",
+                dataAdded: "Dáta pridané. Pýtajte sa!",
+                micBlocked: "Mikrofón blokovaný",
+                error: "Chyba. Skúste znova.",
+                settingsTitle: "Nastavenia",
+                languageLabel: "Jazyk",
+                interruptionLabel: "Prerušovanie",
+                subtitlesLabel: "Titulky",
+                inputLabel: "Textový vstup",
+                closeBtn: "Zavrieť",
+                captureBtn: "Odfotiť",
+                file: "Súbor",
+                search: "Hľadať",
+                link: "Odkaz",
+                linkPrompt: "Zadajte odkaz na analýzu:",
+                searchPrompt: "Povedzte, čo hľadať..."
+            }
+        };
+
+        // State
+        let attachedMedia = [];
+        let currentLinkAttachment = null;
+        let isProcessing = false;
+        let recognition = null;
+        let abortController = null; // To cancel API requests
+        let selectedAvatar = localStorage.getItem('voiceAvatar') || 'arduino';
+        let currentLanguage = localStorage.getItem('voiceLanguage') || 'sk'; // DEFAULT: SK
+        let showSubtitles = localStorage.getItem('showSubtitles') === 'true';
+        let showInputPanel = localStorage.getItem('showInputPanel') === 'true';
+        let interruptionEnabled = localStorage.getItem('interruptionEnabled') === 'true'; // DEFAULT: False
+
+        // Elements
+        const statusEl = document.getElementById('status');
+        const transcriptEl = document.getElementById('transcript');
+        const sourcesContainer = document.getElementById('sources-container');
+        const plusMenu = document.getElementById('plus-menu');
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const subtitleOverlay = document.getElementById('subtitle-overlay');
+        const inputPanel = document.getElementById('text-input-panel');
+        const textInput = document.getElementById('text-input-voice');
+
+        // Settings Elements
+        const toggleSubtitles = document.getElementById('toggle-subtitles');
+        const toggleInputPanel = document.getElementById('toggle-input-panel');
+        const toggleInterruption = document.getElementById('toggle-interruption');
+        const languageSelect = document.getElementById('language-select');
+
+        // Camera Elements
+        const cameraOverlay = document.getElementById('camera-overlay');
+        const cameraVideo = document.getElementById('camera-video');
+        const cameraCanvas = document.getElementById('camera-canvas');
+        let cameraStream = null;
+        let objectDetectionModel = null;
+        let isDetecting = false;
+
+        // --- LOCALIZATION & INIT ---
+        function updateInterfaceLanguage() {
+            const t = translations[currentLanguage];
+            document.documentElement.lang = currentLanguage;
+
+            // Text Elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (t[key]) el.textContent = t[key];
+            });
+
+            // Status & Inputs
+            if (!isProcessing && !window.speechSynthesis.speaking) statusEl.textContent = t.statusListening;
+            textInput.placeholder = t.placeholder;
+
+            // Re-init Recognition if needed
+            if (recognition) {
+                recognition.lang = getLangCode();
+                try { recognition.stop(); } catch (e) { }
+            }
+        }
+
+        function getLangCode() {
+            if (currentLanguage === 'uk') return 'uk-UA';
+            if (currentLanguage === 'sk') return 'sk-SK';
+            return 'en-US';
+        }
+
+        // Initialize UI
+        toggleSubtitles.checked = showSubtitles;
+        toggleInputPanel.checked = showInputPanel;
+        toggleInterruption.checked = interruptionEnabled;
+        languageSelect.value = currentLanguage;
+        if (showInputPanel) inputPanel.classList.remove('hidden-panel');
+        updateInterfaceLanguage();
+
+        // --- SETTINGS EVENTS ---
+        languageSelect.onchange = (e) => {
+            currentLanguage = e.target.value;
+            localStorage.setItem('voiceLanguage', currentLanguage);
+            updateInterfaceLanguage();
+        };
+
+        toggleSubtitles.onchange = (e) => {
+            showSubtitles = e.target.checked;
+            localStorage.setItem('showSubtitles', showSubtitles);
+        };
+
+        toggleInputPanel.onchange = (e) => {
+            showInputPanel = e.target.checked;
+            localStorage.setItem('showInputPanel', showInputPanel);
+            if (showInputPanel) inputPanel.classList.remove('hidden-panel');
+            else inputPanel.classList.add('hidden-panel');
+        };
+
+        toggleInterruption.onchange = (e) => {
+            interruptionEnabled = e.target.checked;
+            localStorage.setItem('interruptionEnabled', interruptionEnabled);
+        };
+
+        // --- AVATAR ---
+        function updateAvatar() {
+            const container = document.getElementById('current-avatar');
+            let imgContent = '';
+
+            const arduino3DUrl = "https://cdn3d.iconscout.com/3d/premium/thumb/arduino-uno-9053368-7455823.png?f=webp";
+            const arduinoFallback = "https://cdn-icons-png.flaticon.com/512/9662/9662366.png";
+
+            if (selectedAvatar === 'arduino') {
+                imgContent = `<img src="${arduino3DUrl}" onerror="this.src='${arduinoFallback}'" class="w-full h-full object-contain p-2 drop-shadow-2xl">`;
+            } else if (selectedAvatar === 'robot') {
+                imgContent = `<img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" class="w-full h-full object-contain p-2 drop-shadow-2xl">`;
+            } else if (selectedAvatar === 'brain') {
+                imgContent = `<img src="https://cdn-icons-png.flaticon.com/512/6166/6166946.png" class="w-full h-full object-contain p-2 drop-shadow-2xl">`;
+            }
+            container.innerHTML = imgContent;
+        }
+        updateAvatar();
+
+        document.querySelectorAll('.avatar-option').forEach(btn => {
+            btn.onclick = () => {
+                selectedAvatar = btn.dataset.type;
+                localStorage.setItem('voiceAvatar', selectedAvatar);
+                updateAvatar();
+                document.getElementById('avatar-modal').classList.add('hidden');
+            };
+        });
+
+        // --- INTERRUPTION LOGIC ---
+        function checkInterruption() {
+            if (interruptionEnabled) {
+                // Cancel Speech
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                }
+                // Cancel API Call
+                if (abortController) {
+                    abortController.abort();
+                    abortController = null;
+                }
+                stopThinking();
+                document.body.classList.remove('speaking');
+                subtitleOverlay.classList.remove('visible');
+                return true;
+            } else {
+                // If interruption DISABLED, ignore input while processing/speaking
+                if (isProcessing || window.speechSynthesis.speaking) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // --- UI ACTIONS ---
+        const avatarModal = document.getElementById('avatar-modal');
+        document.getElementById('voice-settings-btn').onclick = () => avatarModal.classList.remove('hidden');
+        document.getElementById('close-avatar-modal').onclick = () => avatarModal.classList.add('hidden');
+        document.getElementById('btn-exit').onclick = () => window.location.href = 'index.html';
+
+        document.getElementById('btn-add').onclick = () => {
+            if (plusMenu.classList.contains('hidden')) {
+                plusMenu.classList.remove('hidden');
+                plusMenu.classList.add('grid');
+                setTimeout(() => { plusMenu.classList.remove('opacity-0', 'scale-95'); }, 10);
+            } else {
+                plusMenu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => { plusMenu.classList.add('hidden'); plusMenu.classList.remove('grid'); }, 200);
+            }
+        };
+
+        document.querySelectorAll('.menu-item').forEach(btn => {
+            btn.onclick = () => {
+                const action = btn.dataset.action;
+                const t = translations[currentLanguage];
+                plusMenu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => { plusMenu.classList.add('hidden'); plusMenu.classList.remove('grid'); }, 200);
+
+                if (action === 'file') document.getElementById('file-input-voice').click();
+                // if (action === 'camera') startCamera(); // Handled by bottom toolbar now
+                if (action === 'search') {
+                    statusEl.textContent = t.searchPrompt;
+                }
+                if (action === 'link') {
+                    const url = prompt(t.linkPrompt);
+                    if (url && url.trim()) {
+                        currentLinkAttachment = url.trim();
+                        showAttachmentPreview();
+                    }
+                }
+            };
+        });
+
+        // Handle Text Input
+        function handleTextInput() {
+            const val = textInput.value.trim();
+            if (val) {
+                if (checkInterruption()) {
+                    textInput.value = '';
+                    callAI(val);
+                } else if (!isProcessing && !window.speechSynthesis.speaking) {
+                    textInput.value = '';
+                    callAI(val);
+                }
+            }
+        }
+        document.getElementById('send-text-voice').onclick = handleTextInput;
+        textInput.onkeydown = (e) => { if (e.key === 'Enter') handleTextInput(); };
+
+        // Attachments
+        document.getElementById('file-input-voice').onchange = async (e) => {
+            if (e.target.files.length) {
+                for (let file of e.target.files) {
+                    const media = await fileToGenerativePart(file);
+                    attachedMedia.push(media);
+                }
+                showAttachmentPreview();
+            }
+        };
+
+        function fileToGenerativePart(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve({ inlineData: { data: base64, mimeType: file.type } });
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function showAttachmentPreview() {
+            if (attachedMedia.length === 0 && !currentLinkAttachment) {
+                attachmentPreview.classList.add('hidden');
+                return;
+            }
+            attachmentPreview.classList.remove('hidden');
+            const container = document.getElementById('attachments-container');
+            container.innerHTML = '';
+
+            attachedMedia.forEach((media, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.innerHTML = `
+                    <img src="data:${media.inlineData.mimeType};base64,${media.inlineData.data}" class="h-16 w-16 rounded-xl object-cover border border-white/20">
+                    <button onclick="removeMedia(${index})" class="absolute -top-2 -right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                `;
+                container.appendChild(div);
+            });
+
+            if (currentLinkAttachment) {
+                const linkDiv = document.createElement('div');
+                linkDiv.className = 'relative group flex items-center justify-center h-16 w-16 bg-blue-600/20 border border-blue-400/30 rounded-xl';
+                linkDiv.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <button onclick="removeLink()" class="absolute -top-2 -right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                `;
+                container.appendChild(linkDiv);
+            }
+        }
+
+        window.removeMedia = (index) => { attachedMedia.splice(index, 1); showAttachmentPreview(); };
+        window.removeLink = () => { currentLinkAttachment = null; showAttachmentPreview(); };
+        document.getElementById('clear-attachment').onclick = () => { attachedMedia = []; currentLinkAttachment = null; showAttachmentPreview(); };
+
+        // --- CAMERA & MACHINE VISION ---
+        document.getElementById('btn-camera').onclick = startCamera;
+        document.getElementById('close-camera').onclick = stopCamera;
+
+        async function startCamera() {
+            cameraOverlay.style.display = 'flex';
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                cameraVideo.srcObject = cameraStream;
+
+                // Load Model if not loaded
+                if (!objectDetectionModel) {
+                    objectDetectionModel = await cocoSsd.load();
+                }
+
+                // Start Detection Loop
+                isDetecting = true;
+                cameraVideo.onloadeddata = () => {
+                    detectObjects();
+                };
+            } catch (e) {
+                console.error(e);
+                alert("Camera access denied.");
+                stopCamera();
+            }
+        }
+
+        function stopCamera() {
+            isDetecting = false;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            cameraOverlay.style.display = 'none';
+        }
+
+        async function detectObjects() {
+            if (!isDetecting || !cameraVideo.readyState === 4) return;
+
+            const predictions = await objectDetectionModel.detect(cameraVideo);
+
+            // Draw on Canvas
+            const ctx = cameraCanvas.getContext('2d');
+            cameraCanvas.width = cameraVideo.videoWidth;
+            cameraCanvas.height = cameraVideo.videoHeight;
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            predictions.forEach(prediction => {
+                // Bounding box
+                const [x, y, width, height] = prediction.bbox;
+                ctx.strokeStyle = '#00FFFF';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, width, height);
+
+                // Label
+                ctx.fillStyle = '#00FFFF';
+                ctx.fillRect(x, y, width, 25);
+                ctx.fillStyle = '#000000';
+                ctx.font = '18px Arial';
+                ctx.fillText(prediction.class.toUpperCase(), x + 5, y + 18);
+            });
+
+            if (isDetecting) requestAnimationFrame(detectObjects);
+        }
+
+        document.getElementById('capture-image').onclick = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = cameraVideo.videoWidth;
+            canvas.height = cameraVideo.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cameraVideo, 0, 0); // Raw image without boxes for AI analysis
+
+            const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            attachedMedia.push({ inlineData: { data: base64, mimeType: 'image/jpeg' } });
+            showAttachmentPreview();
+            stopCamera();
+        };
+
+        // Quick Screen Capture (retained logic)
+        document.getElementById('btn-screen').onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const track = stream.getVideoTracks()[0];
+                const imageCapture = new ImageCapture(track);
+                const bitmap = await imageCapture.grabFrame();
+                track.stop();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                canvas.getContext('2d').drawImage(bitmap, 0, 0);
+
+                const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+                attachedMedia.push({ inlineData: { data: base64, mimeType: 'image/jpeg' } });
+                showAttachmentPreview();
+            } catch (e) { }
+        };
+
+        // --- AI LOGIC ---
+        let thinkTimer = 0;
+        let thinkInterval;
+
+        function startThinking() {
+            isProcessing = true;
+            document.body.classList.remove('listening');
+            document.body.classList.add('speaking');
+            transcriptEl.textContent = "";
+            sourcesContainer.innerHTML = "";
+
+            if (recognition) { try { recognition.abort(); } catch (e) { } }
+
+            const t = translations[currentLanguage];
+            statusEl.textContent = t.statusThinking;
+
+            thinkTimer = 0;
+            if (thinkInterval) clearInterval(thinkInterval);
+            thinkInterval = setInterval(() => { thinkTimer += 0.1; }, 100);
+        }
+
+        function stopThinking() {
+            clearInterval(thinkInterval);
+            isProcessing = false;
+        }
+
+        const callOpenAIAPI = async (prompt) => {
+            abortController = new AbortController(); // Set up cancellation
+
+            let langName = 'Slovak';
+            if (currentLanguage === 'en') langName = 'English';
+            if (currentLanguage === 'uk') langName = 'Ukrainian';
+
+            const systemPrompt = `You are OleksandrAi, a smart voice assistant.
+            IMPORTANT:
+            1. Respond ONLY in ${langName} language.
+            2. Be concise, friendly, and conversational.
+            3. Do not use markdown (*bold*) as it is read aloud.
+            4. If the user asks, you are currently appearing as a ${selectedAvatar}.`;
+
+            const messages = [{ role: 'system', content: systemPrompt }];
+
+            if (attachedMedia.length > 0) {
+                const parts = [{ type: 'text', text: prompt + (currentLinkAttachment ? "\n\nLink: " + currentLinkAttachment : "") }];
+                attachedMedia.forEach(m => {
+                    parts.push({
+                        type: 'image_url',
+                        image_url: { url: `data:${m.inlineData.mimeType};base64,${m.inlineData.data}` }
+                    });
+                });
+                messages.push({ role: 'user', content: parts });
+            } else {
+                messages.push({ role: 'user', content: prompt + (currentLinkAttachment ? "\n\nLink: " + currentLinkAttachment : "") });
+            }
+
+            try {
+                const res = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'openai', // Pollinations maps this to GPT-4o-mini
+                        messages: messages,
+                        max_tokens: 450,
+                        temperature: 0.7
+                    }),
+                    signal: abortController.signal
+                });
+
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('Request aborted');
+                    return null;
+                }
+                throw error;
+            }
+        };
+
+        async function callAI(text) {
+            if (!Auth.check()) return;
+            startThinking();
+            try {
+                const aiResponse = await callOpenAIAPI(text);
+                if (aiResponse) { // If not aborted
+                    stopThinking();
+                    processResponse(aiResponse);
+
+                    if (attachedMedia.length > 0 || currentLinkAttachment) {
+                        attachedMedia = [];
+                        currentLinkAttachment = null;
+                        attachmentPreview.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                stopThinking();
+                if (e.name !== 'AbortError') {
+                    statusEl.textContent = translations[currentLanguage].error;
+                }
+            }
+        }
+
+        function processResponse(fullText) {
+            const sourceRegex = /\[Source: ([^\]]+)\]/g;
+            let sources = [];
+            let match;
+            while (match = sourceRegex.exec(fullText)) {
+                sources.push(match[1]);
+            }
+            const cleanText = fullText.replace(sourceRegex, '').trim();
+
+            sourcesContainer.innerHTML = sources.map(s =>
+                `<span class="bg-blue-600/50 px-3 py-1 rounded-full text-xs border border-blue-400/30">${s}</span>`
+            ).join('');
+
+            transcriptEl.textContent = cleanText;
+            speak(cleanText);
+        }
+
+        // --- SPEECH SYNTHESIS ---
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            if (recognition) { try { recognition.stop(); } catch (e) { } }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = getLangCode();
+
+            utterance.onstart = () => {
+                document.body.classList.remove('listening');
+                document.body.classList.add('speaking');
+                statusEl.textContent = translations[currentLanguage].statusSpeaking;
+                if (showSubtitles) {
+                    subtitleOverlay.textContent = text;
+                    subtitleOverlay.classList.add('visible');
+                }
+            };
+
+            utterance.onend = () => {
+                document.body.classList.remove('speaking');
+                document.body.classList.add('listening');
+                statusEl.textContent = translations[currentLanguage].statusListening;
+                subtitleOverlay.classList.remove('visible');
+
+                // Restart Listening
+                if (!isProcessing) {
+                    setTimeout(() => { try { recognition.start(); } catch (e) { } }, 500);
+                }
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- SPEECH RECOGNITION ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = getLangCode();
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                let final = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                    else interim += event.results[i][0].transcript;
+                }
+
+                // LOGIC: If interruption is enabled and we detect input -> Stop everything
+                if (interruptionEnabled && (interim.length > 0 || final.length > 0)) {
+                    if (window.speechSynthesis.speaking) {
+                        window.speechSynthesis.cancel();
+                        if (abortController) abortController.abort();
+                        stopThinking();
+                    }
+                }
+
+                if (!interruptionEnabled && (isProcessing || window.speechSynthesis.speaking)) return;
+
+                if (interim) {
+                    transcriptEl.textContent = interim;
+                    transcriptEl.style.opacity = '0.7';
+                }
+
+                if (final && final.trim().length > 0) {
+                    transcriptEl.textContent = final;
+                    transcriptEl.style.opacity = '1';
+                    callAI(final);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.warn("Rec Error: ", event.error);
+                // Don't show blocked status for 'no-speech' errors which are common
+                if (event.error === 'not-allowed') statusEl.textContent = translations[currentLanguage].micBlocked;
+            };
+
+            recognition.onend = () => {
+                // Auto restart for continuous listening
+                document.body.classList.remove('listening');
+                if (!isProcessing && !window.speechSynthesis.speaking) {
+                    setTimeout(() => {
+                        try { recognition.start(); } catch (e) { }
+                    }, 300);
+                }
+            };
+
+            // Start immediately (modern browsers might require one user click first, handled by status)
+            setTimeout(() => { try { recognition.start(); } catch (e) { } }, 1000);
+        } else {
+            statusEl.textContent = "No Voice API";
+        }
+    </script>
+</body>
+
+</html>

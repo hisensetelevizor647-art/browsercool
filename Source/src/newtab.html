@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Olewser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: 10%;
+            width: 600px;
+            height: 600px;
+            background: #888;
+        }
+
+        .glow-2 {
+            bottom: -10%;
+            right: 10%;
+            width: 600px;
+            height: 600px;
+            background: #aaa;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            width: 420px;
+            max-width: 80vw;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.06));
+        }
+
+        .search-wrap {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            margin-bottom: 56px;
+            transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .search-wrap:hover {
+            transform: scale(1.02);
+        }
+
+        .search-bar {
+            width: 100%;
+            height: 56px;
+            padding: 0 56px 0 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            outline: none;
+            color: #fff;
+            font-size: 17px;
+            font-family: inherit;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-bar:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2),
+                0 0 15px rgba(255, 255, 255, 0.04),
+                0 0 30px rgba(255, 255, 255, 0.02);
+        }
+
+        .search-bar:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(255, 255, 255, 0.06),
+                0 0 40px rgba(255, 255, 255, 0.03);
+        }
+
+        .search-wrap::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 30px;
+            background: linear-gradient(90deg, transparent 0%, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%, transparent 100%);
+            background-size: 200% 100%;
+            background-position: -100% 0;
+            opacity: 0;
+            z-index: -1;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            padding: 2px;
+        }
+
+        .search-wrap.neon-flash::before {
+            opacity: 1;
+            animation: neon-flash 2s ease-in-out forwards;
+        }
+
+        @keyframes neon-flash {
+            0% {
+                background-position: -100% 0;
+                opacity: 0;
+            }
+
+            15% {
+                opacity: 1;
+            }
+
+            85% {
+                opacity: 1;
+            }
+
+            100% {
+                background-position: 200% 0;
+                opacity: 0;
+            }
+        }
+
+        .search-bar::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .quick-links-toolbar {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            justify-content: center;
+            margin-top: -32px;
+            margin-bottom: 18px;
+        }
+
+        .quick-add-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-add-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.11);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .quick-link-wrap {
+            position: relative;
+        }
+
+        .quick-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .quick-link:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .quick-link-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .quick-link-icon img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .quick-link-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .quick-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 22px;
+            height: 22px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.45);
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quick-link-wrap:hover .quick-remove {
+            display: inline-flex;
+        }
+
+        .quick-add-dialog {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .quick-add-dialog.open {
+            display: flex;
+        }
+
+        .quick-add-card {
+            width: min(420px, calc(100vw - 32px));
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(10, 10, 10, 0.92);
+            backdrop-filter: blur(14px);
+            padding: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .quick-add-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .quick-add-field {
+            width: 100%;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            padding: 0 12px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        .quick-add-field:focus {
+            border-color: rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .quick-add-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .quick-add-action {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            height: 36px;
+            padding: 0 14px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .quick-add-action.primary {
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .quick-add-hint {
+            min-height: 18px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: rgba(255, 120, 120, 0.9);
+        }
+
+        @media (max-width: 900px) {
+            .quick-links {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .quick-links {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .quick-link {
+                padding: 16px 10px;
+            }
+        }
+
+        [data-theme="light"] body,
+        [data-theme="light"] {
+            background: #e4e4e2;
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        [data-theme="light"] .glow {
+            display: none;
+        }
+
+        [data-theme="light"] .logo {
+            filter: invert(1) drop-shadow(0 0 20px rgba(0, 0, 0, 0.05));
+        }
+
+        [data-theme="light"] .search-bar {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.08);
+            color: #222;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="light"] .search-bar:hover {
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .search-bar:focus {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .search-bar::placeholder {
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .search-icon {
+            color: rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] .quick-add-btn {
+            border-color: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.75);
+        }
+
+        [data-theme="light"] .quick-add-btn:hover {
+            border-color: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .quick-link {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="light"] .quick-link:hover {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .quick-link-icon {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .quick-link-title {
+            color: rgba(0, 0, 0, 0.55);
+        }
+
+        [data-theme="light"] .quick-remove {
+            background: rgba(255, 255, 255, 0.86);
+            color: rgba(0, 0, 0, 0.78);
+        }
+
+        [data-theme="light"] .quick-add-card {
+            background: rgba(245, 245, 245, 0.95);
+            border-color: rgba(0, 0, 0, 0.1);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+        }
+
+        [data-theme="light"] .quick-add-title {
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .quick-add-field {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .quick-add-action {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.14);
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        [data-theme="light"] .quick-add-action.primary {
+            background: rgba(0, 0, 0, 0.13);
+        }
+
+        [data-theme="light"] .quick-add-hint {
+            color: #b03c3c;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="container">
+        <div class="logo-block">
+            <img src="../Olewser LOGO/7.png" class="logo" alt="Olewser">
+        </div>
+
+        <div class="search-wrap">
+            <input type="text" class="search-bar" id="search-input" placeholder="Search the web or enter address"
+                spellcheck="false" autocomplete="off" autofocus>
+            <svg class="search-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+        </div>
+
+        <div class="quick-links-toolbar">
+            <button class="quick-add-btn" id="quick-add-btn" type="button" title="Add site">+</button>
+        </div>
+
+        <div class="quick-links" id="quick-links"></div>
+    </div>
+
+    <div class="quick-add-dialog" id="quick-add-dialog">
+        <form class="quick-add-card" id="quick-add-form">
+            <div class="quick-add-title">Add site to quick access</div>
+            <input class="quick-add-field" id="quick-add-url" type="text" placeholder="https://example.com" autocomplete="off">
+            <input class="quick-add-field" id="quick-add-title-input" type="text" placeholder="Title (optional)" maxlength="30" autocomplete="off">
+            <div class="quick-add-actions">
+                <button class="quick-add-action" id="quick-cancel-btn" type="button">Cancel</button>
+                <button class="quick-add-action primary" type="submit">Save</button>
+            </div>
+            <div class="quick-add-hint" id="quick-add-hint"></div>
+        </form>
+    </div>
+
+    <script>
+        const QUICK_LINKS_KEY = 'olewser.quickLinks';
+        const MAX_QUICK_LINKS = 12;
+        const defaultLinks = [];
+        const quickLinks = loadLinks();
+
+        function normalizeQuickUrl(rawUrl) {
+            const value = (rawUrl || '').trim();
+            if (!value) return null;
+            try {
+                return new URL(value).href;
+            } catch (error) {
+                try {
+                    return new URL('https://' + value).href;
+                } catch (e) {
+                    return null;
+                }
+            }
+        }
+
+        function safeTitle(title, url) {
+            const text = (title || '').trim();
+            if (text) return text.slice(0, 30);
+            try {
+                return new URL(url).hostname.replace(/^www\./, '');
+            } catch (error) {
+                return 'Site';
+            }
+        }
+
+        function loadLinks() {
+            try {
+                const raw = localStorage.getItem(QUICK_LINKS_KEY);
+                if (!raw) return [...defaultLinks];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [...defaultLinks];
+                return parsed
+                    .map((link) => {
+                        const url = normalizeQuickUrl(link && link.url);
+                        if (!url) return null;
+                        return {
+                            url,
+                            title: safeTitle(link && link.title, url)
+                        };
+                    })
+                    .filter(Boolean)
+                    .slice(0, MAX_QUICK_LINKS);
+            } catch (error) {
+                return [...defaultLinks];
+            }
+        }
+
+        function saveLinks(links) {
+            localStorage.setItem(QUICK_LINKS_KEY, JSON.stringify(links));
+        }
+
+        function renderLinks(links) {
+            const container = document.getElementById('quick-links');
+            container.innerHTML = '';
+
+            links.forEach((link, index) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'quick-link-wrap';
+
+                const a = document.createElement('a');
+                a.className = 'quick-link';
+                a.href = link.url;
+                a.title = link.url;
+
+                const iconBox = document.createElement('div');
+                iconBox.className = 'quick-link-icon';
+
+                const icon = document.createElement('img');
+                icon.alt = '';
+                icon.src = `https://www.google.com/s2/favicons?domain=${new URL(link.url).hostname}&sz=128`;
+                icon.onerror = function () {
+                    this.src = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>";
+                };
+                iconBox.appendChild(icon);
+
+                const title = document.createElement('span');
+                title.className = 'quick-link-title';
+                title.textContent = link.title;
+
+                a.appendChild(iconBox);
+                a.appendChild(title);
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.href = link.url;
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'quick-remove';
+                removeBtn.title = 'Remove';
+                removeBtn.textContent = 'x';
+                removeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    quickLinks.splice(index, 1);
+                    saveLinks(quickLinks);
+                    renderLinks(quickLinks);
+                });
+
+                wrap.appendChild(a);
+                wrap.appendChild(removeBtn);
+                container.appendChild(wrap);
+            });
+        }
+
+        renderLinks(quickLinks);
+
+        const quickAddBtn = document.getElementById('quick-add-btn');
+        const quickDialog = document.getElementById('quick-add-dialog');
+        const quickForm = document.getElementById('quick-add-form');
+        const quickUrlInput = document.getElementById('quick-add-url');
+        const quickTitleInput = document.getElementById('quick-add-title-input');
+        const quickCancelBtn = document.getElementById('quick-cancel-btn');
+        const quickHint = document.getElementById('quick-add-hint');
+
+        function openQuickDialog() {
+            quickHint.textContent = '';
+            quickUrlInput.value = '';
+            quickTitleInput.value = '';
+            quickDialog.classList.add('open');
+            quickUrlInput.focus();
+        }
+
+        function closeQuickDialog() {
+            quickDialog.classList.remove('open');
+        }
+
+        quickAddBtn.addEventListener('click', openQuickDialog);
+        quickCancelBtn.addEventListener('click', closeQuickDialog);
+        quickDialog.addEventListener('click', (e) => {
+            if (e.target === quickDialog) closeQuickDialog();
+        });
+
+        quickForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            quickHint.textContent = '';
+
+            const normalized = normalizeQuickUrl(quickUrlInput.value);
+            if (!normalized) {
+                quickHint.textContent = 'Enter a valid website URL.';
+                return;
+            }
+
+            if (quickLinks.some((item) => item.url === normalized)) {
+                quickHint.textContent = 'This site is already in quick access.';
+                return;
+            }
+
+            if (quickLinks.length >= MAX_QUICK_LINKS) {
+                quickHint.textContent = `Maximum ${MAX_QUICK_LINKS} quick links.`;
+                return;
+            }
+
+            const next = {
+                url: normalized,
+                title: safeTitle(quickTitleInput.value, normalized)
+            };
+            quickLinks.unshift(next);
+            saveLinks(quickLinks);
+            renderLinks(quickLinks);
+            closeQuickDialog();
+        });
+
+        document.getElementById('search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = e.target.value.trim();
+                if (!val) return;
+                const isUrl = /^(https?:\/\/|[\w-]+\.[\w-]+)/.test(val);
+                window.location.href = isUrl
+                    ? (val.startsWith('http') ? val : 'https://' + val)
+                    : 'https://www.google.com/search?q=' + encodeURIComponent(val);
+            }
+        });
+
+        const searchWrap = document.querySelector('.search-wrap');
+        searchWrap.addEventListener('mouseenter', () => {
+            searchWrap.classList.remove('neon-flash');
+            void searchWrap.offsetWidth;
+            searchWrap.classList.add('neon-flash');
+        });
+        searchWrap.addEventListener('animationend', () => {
+            searchWrap.classList.remove('neon-flash');
+        });
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+</body>
+
+</html>
