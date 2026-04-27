@@ -12,6 +12,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'src/ai/ai_service.dart';
 import 'src/ai/model_catalog.dart';
+import 'src/config/app_config.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
