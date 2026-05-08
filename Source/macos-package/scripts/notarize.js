@@ -8,6 +8,9 @@ exports.default = async function notarizeApp(context) {
   if (electronPlatformName !== 'darwin') return;
 
   const productFilename = packager && packager.appInfo ? packager.appInfo.productFilename : 'Olewser';
+  const appBundleId = packager && packager.appInfo && packager.appInfo.id
+    ? packager.appInfo.id
+    : (process.env.APP_BUNDLE_ID || 'com.olewser.browser.macos');
   const appPath = path.join(appOutDir, `${productFilename}.app`);
 
   if (!fs.existsSync(appPath)) {
@@ -36,7 +39,7 @@ exports.default = async function notarizeApp(context) {
   if (useApiKey) {
     await notarize({
       appPath,
-      appBundleId: 'com.olewser.browser',
+      appBundleId,
       appleApiKey: process.env.APPLE_API_KEY,
       appleApiKeyId: process.env.APPLE_API_KEY_ID,
       appleApiIssuer: process.env.APPLE_API_ISSUER,
@@ -47,7 +50,7 @@ exports.default = async function notarizeApp(context) {
 
   await notarize({
     appPath,
-    appBundleId: 'com.olewser.browser',
+    appBundleId,
     appleId: process.env.APPLE_ID,
     appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
     teamId: process.env.APPLE_TEAM_ID,

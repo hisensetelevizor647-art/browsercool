@@ -5,8 +5,8 @@
     "description": "Olewser - Fast, Dark, Minimal Web Browser",
     "main": "main.js",
     "scripts": {
-        "start": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron .\"",
-        "dev": "chcp 65001 >nul && cmd /c \"(set ELECTRON_RUN_AS_NODE=) & electron . --dev\"",
+        "start": "node scripts/run-electron.js",
+        "dev": "node scripts/run-electron.js --dev",
         "build": "electron-builder --win",
         "build:mac": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml",
         "build:macos": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml"

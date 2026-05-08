@@ -2,7 +2,7 @@ name: Build macOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, publish-main ]
   workflow_dispatch:
     inputs:
       version:
@@ -74,8 +74,8 @@ jobs:
         with:
           name: macOS-App-${{ steps.vars.outputs.build_version }}
           path: |
-            Source/dist/*.dmg
-            Source/dist/*.zip
+            Source/dist-macos/*.dmg
+            Source/dist-macos/*.zip
           if-no-files-found: error
 
       - name: Publish release assets
@@ -88,5 +88,5 @@ jobs:
           draft: false
           prerelease: false
           artifacts: |
-            Source/dist/*.dmg
-            Source/dist/*.zip
+            Source/dist-macos/*.dmg
+            Source/dist-macos/*.zip

@@ -5,8 +5,8 @@ import path from 'node:path';
 // Usage:
 //   node macos-package/scripts/build-update-manifest.mjs 1.0.7 \
 //     --win Olewser-Setup-1.0.7.exe \
-//     --mac-arm Olewser-1.0.7-arm64.dmg \
-//     --mac-x64 Olewser-1.0.7-x64.dmg \
+//     --mac-arm Olewser-macos-1.0.7-arm64.dmg \
+//     --mac-x64 Olewser-macos-1.0.7-x64.dmg \
 //     --out ../../siteolewer/app-update.json
 
 const args = process.argv.slice(2);
@@ -18,8 +18,8 @@ if (!args.length) {
 const version = args[0];
 const options = {
   win: `Olewser-Setup-${version}.exe`,
-  macArm: `Olewser-${version}-arm64.dmg`,
-  macX64: `Olewser-${version}-x64.dmg`,
+  macArm: `Olewser-macos-${version}-arm64.dmg`,
+  macX64: `Olewser-macos-${version}-x64.dmg`,
   out: '',
 };
 

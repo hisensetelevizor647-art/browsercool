@@ -1,0 +1,36 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="110" y1="80" x2="914" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="0.5" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#0b1020"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(384 312) rotate(39) scale(790 630)">
+      <stop offset="0" stop-color="#60a5fa" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#2563eb" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="286" y1="294" x2="730" y2="744" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.42" stop-color="#dbeafe"/>
+      <stop offset="1" stop-color="#93c5fd"/>
+    </linearGradient>
+    <linearGradient id="slash" x1="558" y1="274" x2="770" y2="768" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <filter id="softShadow" x="120" y="132" width="790" height="790" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect x="56" y="56" width="912" height="912" rx="214" fill="url(#bg)"/>
+  <rect x="56" y="56" width="912" height="912" rx="214" fill="url(#core)"/>
+  <rect x="64" y="64" width="896" height="440" rx="208" fill="#ffffff" opacity="0.08"/>
+  <rect x="56" y="56" width="912" height="912" rx="214" fill="none" stroke="#dbeafe" stroke-opacity="0.16" stroke-width="10"/>
+
+  <g filter="url(#softShadow)">
+    <circle cx="474" cy="530" r="190" fill="none" stroke="url(#ring)" stroke-width="88" stroke-linecap="round"/>
+    <path d="M564 306L748 742" stroke="url(#slash)" stroke-width="82" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,6 +1,11 @@
-﻿# macOS Package Workspace
+# macOS Package Workspace
 
 This folder contains everything needed to build and maintain the **macOS-specific Olewser release**.
+
+## Separate macOS identity
+- Bundle ID: `com.olewser.browser.macos`
+- Build output folder: `Source/dist-macos/`
+- Default artifact names: `Olewser-macos-${version}-arm64.dmg` and `Olewser-macos-${version}-x64.dmg`
 
 ## What this folder controls
 - `electron-builder.mac.yml` -> dedicated macOS build config
@@ -43,8 +48,8 @@ Use platform-specific downloads so mac users get mac packages:
   "downloads": {
     "win32": "Olewser-Setup-1.0.7.exe",
     "darwin": {
-      "arm64": "Olewser-1.0.7-arm64.dmg",
-      "x64": "Olewser-1.0.7-x64.dmg"
+      "arm64": "Olewser-macos-1.0.7-arm64.dmg",
+      "x64": "Olewser-macos-1.0.7-x64.dmg"
     }
   }
 }
@@ -54,3 +59,4 @@ Use platform-specific downloads so mac users get mac packages:
 - Apple Human Interface Guidelines (App Icons): https://developer.apple.com/design/human-interface-guidelines/app-icons
 - Electron BrowserWindow vibrancy: https://www.electronjs.org/docs/latest/api/browser-window
 - electron-builder mac configuration: https://www.electron.build/mac
+
