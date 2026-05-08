@@ -942,6 +942,8 @@
         if (isIncog) wv.setAttribute('partition', 'incognito-' + id);
         wv.setAttribute('allowpopups', '');
         wv.setAttribute('webpreferences', 'contextIsolation=yes');
+        // Prevent Windows passkey modal from hijacking Google sign-in flows.
+        wv.setAttribute('disableblinkfeatures', 'WebAuthentication');
         // Add preload for local file:// URLs so they get window.olewser API
         const targetUrl = url || (isIncog ? incognitoUrl() : newtabUrl());
         if (targetUrl.startsWith('file://') && _preloadPath) {

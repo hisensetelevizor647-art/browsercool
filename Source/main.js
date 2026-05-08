@@ -35,13 +35,38 @@ try {
   }
 } catch (e) { /* silent */ }
 
-// --- Fingerprint Evasion ---
-const CHROME_VERSION = '133.0.0.0';
-const SPOOFED_UA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+// --- Browser identity for auth-sensitive providers (Google, etc.) ---
+const CHROME_VERSION = process.versions.chrome || '133.0.0.0';
+const UA_PLATFORM = process.platform === 'darwin'
+  ? 'Macintosh; Intel Mac OS X 10_15_7'
+  : (process.platform === 'win32' ? 'Windows NT 10.0; Win64; x64' : 'X11; Linux x86_64');
+const FALLBACK_CHROME_UA = `Mozilla/5.0 (${UA_PLATFORM}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36`;
+
+function stripElectronTokenFromUserAgent(rawUa = '') {
+  return String(rawUa || '')
+    .replace(/\sElectron\/[^\s]+/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function buildPreferredUserAgent() {
+  try {
+    const sessionUa = session.defaultSession ? session.defaultSession.getUserAgent() : '';
+    const cleaned = stripElectronTokenFromUserAgent(sessionUa);
+    if (cleaned) return cleaned;
+  } catch (_) {
+    // Fallback below.
+  }
+  return FALLBACK_CHROME_UA;
+}
+
+let preferredUserAgent = '';
 
 // Strip Electron/Olewser from the default user agent at the app level
 // This is critical for Google login - Google checks the UA and blocks Electron apps
-app.userAgentFallback = SPOOFED_UA;
+// NOTE:
+// Aggressive global UA spoofing increases Google risk checks in modern auth flows.
+// Keep native Chromium UA behavior and only use selective overrides when needed.
 if (process.platform === 'win32') {
   app.setAppUserModelId(APP_ID);
 }
@@ -50,6 +75,48 @@ if (process.platform === 'win32') {
 let mainWindow = null;
 let windows = [];
 let pendingLaunchTargets = [];
+
+const GOOGLE_AUTH_SAFE_HOSTS = new Set([
+  'google.com',
+  'www.google.com',
+  'accounts.google.com',
+  'accounts.youtube.com',
+  'myaccount.google.com',
+  'oauthaccountmanager.googleapis.com',
+  'oauth2.googleapis.com',
+  'apis.google.com',
+  'www.googleapis.com',
+  'www.gstatic.com',
+  'ssl.gstatic.com',
+  'gstatic.com',
+  'googleusercontent.com',
+  'www.googleusercontent.com',
+  'youtube.com',
+  'www.youtube.com',
+  'youtubei.googleapis.com',
+  'clients1.google.com',
+  'clients2.google.com',
+]);
+
+function isGoogleAuthSafeHost(hostname = '') {
+  const host = String(hostname || '').toLowerCase();
+  if (!host) return false;
+  if (GOOGLE_AUTH_SAFE_HOSTS.has(host)) return true;
+  return host.endsWith('.google.com')
+    || host.endsWith('.gstatic.com')
+    || host.endsWith('.googleapis.com')
+    || host.endsWith('.googleusercontent.com')
+    || host.endsWith('.youtube.com');
+}
+
+function isGoogleAuthSafeUrl(rawUrl = '') {
+  try {
+    const u = new URL(rawUrl);
+    return isGoogleAuthSafeHost(u.hostname);
+  } catch (_) {
+    return false;
+  }
+}
 
 function normalizeIncomingTarget(input) {
   if (!input) return '';
@@ -540,9 +607,13 @@ app.on('ready', async () => {
       addCandidate(manifest.exe);
     }
 
+    const isAllowedForPlatform = (resolvedUrl) => isUpdatePackageAllowedForPlatform(resolvedUrl, platform);
+
     for (const candidate of candidates) {
       try {
-        return new URL(candidate, manifestUrl).toString();
+        const resolved = new URL(candidate, manifestUrl).toString();
+        if (!isAllowedForPlatform(resolved)) continue;
+        return resolved;
       } catch (_) {
         // Ignore malformed candidate and continue
       }
@@ -575,6 +646,9 @@ app.on('ready', async () => {
         }
 
         const downloadUrl = resolveDownloadUrl(manifest, manifestUrl);
+        if (process.platform === 'win32' && downloadUrl && !isUpdatePackageAllowedForPlatform(downloadUrl, 'win32')) {
+          throw new Error('Manifest provided non-Windows package for Windows updater');
+        }
         const notes = String(manifest.notes || manifest.changelog || manifest.message || '').trim();
         const mandatory = !!manifest.mandatory;
         const settings = loadSettings();
@@ -674,6 +748,11 @@ app.on('ready', async () => {
         const location = res.headers.location;
         if ([301, 302, 303, 307, 308].includes(status) && location) {
           const redirected = new URL(location, parsedUrl).toString();
+          if (!isUpdatePackageAllowedForPlatform(redirected)) {
+            res.resume();
+            reject(new Error('Updater redirect points to a package for a different platform'));
+            return;
+          }
           res.resume();
           downloadFileWithRedirects(redirected, destinationPath, onProgress, redirectCount + 1).then(resolve).catch(reject);
           return;
@@ -1213,8 +1292,19 @@ app.on('ready', async () => {
   const SAME_SITE_AD_RESOURCE_TYPES = new Set(['script', 'subframe', 'xhr', 'media', 'fetch', 'other']);
 
   const ADBLOCK_NEVER_BLOCK_HOSTS = [
+    'google.com',
+    'www.google.com',
     'accounts.google.com',
     'accounts.youtube.com',
+    'myaccount.google.com',
+    'apis.google.com',
+    'oauth2.googleapis.com',
+    'www.gstatic.com',
+    'ssl.gstatic.com',
+    'gstatic.com',
+    'googleusercontent.com',
+    'youtube.com',
+    'www.youtube.com',
     'openai.com',
     'api.openai.com'
   ];
@@ -1292,6 +1382,10 @@ app.on('ready', async () => {
     ];
 
     session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
+      if (isGoogleAuthSafeUrl(details.url)) {
+        callback({});
+        return;
+      }
       try {
         const url = new URL(details.url);
         // Block by domain
@@ -1424,6 +1518,7 @@ app.on('ready', async () => {
   }
 
   function openGoogleLoginPopup(url, webviewContents) {
+    const disableBlinkFeatures = process.platform === 'win32' ? 'WebAuthentication' : undefined;
     const loginWin = new BrowserWindow({
       width: 500,
       height: 700,
@@ -1435,7 +1530,8 @@ app.on('ready', async () => {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true,
+        sandbox: false,
+        disableBlinkFeatures,
         // Use the same session so cookies are shared with webviews
         partition: undefined,
       },
@@ -1446,7 +1542,9 @@ app.on('ready', async () => {
     if (!loginIcon.isEmpty()) loginWin.setIcon(loginIcon);
 
     loginWin.setMenuBarVisibility(false);
-    loginWin.webContents.setUserAgent(SPOOFED_UA);
+    if (preferredUserAgent) {
+      loginWin.webContents.setUserAgent(preferredUserAgent);
+    }
     loginWin.loadURL(url);
 
     // When Google login finishes, it will redirect to the original service
@@ -1494,21 +1592,14 @@ app.on('ready', async () => {
     const settings = loadSettings();
 
     mainWindow.webContents.on('did-attach-webview', (event, wc) => {
-      wc.setUserAgent(SPOOFED_UA);
-
-      // Intercept Google login navigations - open in popup BrowserWindow
-      wc.on('will-navigate', (e, url) => {
-        if (isGoogleLoginUrl(url)) {
-          e.preventDefault();
-          openGoogleLoginPopup(url, wc);
-          return;
-        }
-      });
+      if (preferredUserAgent) {
+        wc.setUserAgent(preferredUserAgent);
+      }
 
       // CRITICAL: Register preload for local file:// pages (settings, newtab)
       // so they can access window.olewser API
       wc.on('will-navigate', (e, url) => {
-        // Preload is already set from webview tag attributes for file:// URLs
+        // No-op placeholder to keep parity with existing navigation hooks.
       });
 
       wc.on('dom-ready', () => {
@@ -1524,6 +1615,11 @@ app.on('ready', async () => {
           }
         `).catch(() => { });
         } else {
+          // Do not inject anti-detect/ad scripts on Google auth-related origins.
+          if (isGoogleAuthSafeUrl(url)) {
+            return;
+          }
+
           // Only run anti-detect on external sites
           wc.executeJavaScript(antiDetectJS).catch(() => { });
 
@@ -1854,21 +1950,38 @@ app.on('ready', async () => {
       });
     });
 
-    // Headers: clean up Electron-specific headers but keep real Chrome headers
+    // Keep header mutation minimal for auth-sensitive providers.
     session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
       const headers = { ...details.requestHeaders };
-      // Remove all Electron-specific headers
+
+      // Remove Electron-specific debug headers
       delete headers['X-Electron-Is-Dev'];
       delete headers['X-Electron'];
-      // Set Chrome-like headers
-      headers['User-Agent'] = SPOOFED_UA;
-      headers['sec-ch-ua'] = `"Chromium";v="133", "Google Chrome";v="133", "Not_A Brand";v="24"`;
-      headers['sec-ch-ua-mobile'] = '?0';
-      headers['sec-ch-ua-platform'] = '"Windows"';
-      headers['sec-ch-ua-full-version-list'] = `"Chromium";v="${CHROME_VERSION}", "Google Chrome";v="${CHROME_VERSION}", "Not_A Brand";v="24.0.0.0"`;
+
       if (settings.doNotTrack) headers['DNT'] = '1';
+
       callback({ requestHeaders: headers });
     });
+  }
+
+  function isUpdatePackageAllowedForPlatform(resolvedUrl, platform = process.platform) {
+    let ext = '';
+    try {
+      ext = path.extname(new URL(resolvedUrl).pathname || '').toLowerCase();
+    } catch (_) {
+      ext = '';
+    }
+    if (!ext) return true;
+
+    if (platform === 'win32') {
+      const forbidden = new Set(['.dmg', '.pkg', '.app', '.apk', '.aab', '.ipa']);
+      return !forbidden.has(ext);
+    }
+    if (platform === 'darwin') {
+      const forbidden = new Set(['.exe', '.msi', '.msix', '.appx', '.appxbundle', '.apk', '.aab']);
+      return !forbidden.has(ext);
+    }
+    return true;
   }
 
   // ============================================================
@@ -1923,7 +2036,12 @@ app.on('ready', async () => {
     const settings = loadSettings();
     const isMac = process.platform === 'darwin';
 
-    session.defaultSession.setUserAgent(SPOOFED_UA);
+    if (!preferredUserAgent) {
+      preferredUserAgent = buildPreferredUserAgent();
+    }
+    if (preferredUserAgent) {
+      session.defaultSession.setUserAgent(preferredUserAgent);
+    }
 
     const win = new BrowserWindow({
       width: 1400,
@@ -2142,7 +2260,7 @@ app.on('ready', async () => {
 
     mainWindow.webContents.on('did-attach-webview', (event, wc) => {
       wc.setWindowOpenHandler(({ url }) => {
-        // Intercept Google login popups (e.g. "Sign in with Google" buttons)
+        // Keep Google auth inside app (dedicated popup BrowserWindow).
         if (isGoogleLoginUrl(url)) {
           openGoogleLoginPopup(url, wc);
           return { action: 'deny' };

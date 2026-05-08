@@ -1,7 +1,7 @@
 {
     "name": "olewser",
     "productName": "Olewser",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Olewser - Fast, Dark, Minimal Web Browser",
     "main": "main.js",
     "scripts": {
