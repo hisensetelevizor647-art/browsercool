@@ -113,7 +113,7 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          npx electron-builder --mac dmg zip \
+          npx electron-builder --mac dmg zip --arm64 --x64 \
             --config macos-package/electron-builder.mac.yml \
             --config.extraMetadata.version=${{ steps.vars.outputs.build_version }} \
             --config.npmRebuild=false
@@ -121,7 +121,7 @@ jobs:
       - name: Build macOS app (unsigned fallback)
         if: ${{ steps.signing.outputs.has_signing != 'true' }}
         run: |
-          npx electron-builder --mac dmg zip \
+          npx electron-builder --mac dmg zip --arm64 --x64 \
             --config macos-package/electron-builder.mac.yml \
             --config.extraMetadata.version=${{ steps.vars.outputs.build_version }} \
             --config.npmRebuild=false \
