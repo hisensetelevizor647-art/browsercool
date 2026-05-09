@@ -337,6 +337,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
   bool _speechReady = false;
   bool _listening = false;
   bool _panelVisible = false;
+  bool _aiPanelFullscreen = false;
   bool _panelVisibleDefault = false;
   bool _aggressiveAdBlock = true;
   bool _attachPageContext = true;
@@ -789,14 +790,15 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
       final String action = uri.host.toLowerCase();
       switch (action) {
         case 'ai':
-          setState(() {
-            _panelVisible = true;
-          });
-          _focusPromptInputSoon();
+          _openAiPanel(fullScreen: false, focusPrompt: true);
+          return;
+        case 'ai-full':
+          _openAiPanel(fullScreen: true, focusPrompt: true);
           return;
         case 'search':
           setState(() {
             _panelVisible = false;
+            _aiPanelFullscreen = false;
           });
           _focusUrlInputSoon();
           return;
@@ -836,12 +838,22 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                 right: 0,
                 child: LinearProgressIndicator(minHeight: 2),
               ),
-            if (_panelVisible) _buildAiPanel(),
+            if (_panelVisible) _buildAiPanel(fullScreen: _aiPanelFullscreen),
           ],
         ),
       ),
       bottomNavigationBar: _buildBottomDock(),
     );
+  }
+
+  void _openAiPanel({bool fullScreen = false, bool focusPrompt = false}) {
+    setState(() {
+      _panelVisible = true;
+      _aiPanelFullscreen = fullScreen;
+    });
+    if (focusPrompt) {
+      _focusPromptInputSoon();
+    }
   }
 
   PreferredSizeWidget _buildTopBrowserBar() {
@@ -922,7 +934,13 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
         customBorder: const CircleBorder(),
         onTap: () {
           setState(() {
-            _panelVisible = !_panelVisible;
+            if (_panelVisible) {
+              _panelVisible = false;
+              _aiPanelFullscreen = false;
+            } else {
+              _panelVisible = true;
+              _aiPanelFullscreen = false;
+            }
           });
         },
         child: SizedBox(
@@ -979,7 +997,9 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                 tooltip: 'Browser menu',
                 onPressed: _openWidgetsSheet,
               ),
-              const Spacer(),
+              const SizedBox(width: 6),
+              Expanded(child: _buildAssistantDockButton()),
+              const SizedBox(width: 4),
               _DockIconButton(
                 icon: Icons.settings_outlined,
                 tooltip: 'Settings',
@@ -992,18 +1012,64 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
     );
   }
 
-  Widget _buildAiPanel() {
+  Widget _buildAssistantDockButton() {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: _openAssistantQuickSheet,
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            children: <Widget>[
+              const SizedBox(width: 12),
+              Icon(Icons.auto_awesome_rounded, size: 16, color: colors.primary),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  'Assistant',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _speechReady ? _togglePromptVoiceInput : null,
+                tooltip: _listening ? 'Stop voice mode' : 'Voice mode',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  _listening ? Icons.mic_off_rounded : Icons.mic_rounded,
+                  size: 18,
+                  color: colors.primary,
+                ),
+              ),
+              const SizedBox(width: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiPanel({required bool fullScreen}) {
     final Size size = MediaQuery.sizeOf(context);
     final bool compact = size.width < 460;
     final double panelWidth = compact ? size.width - 12 : 470;
     final double panelHeight = size.height < 760 ? 380 : 460;
 
     return Positioned(
+      top: fullScreen ? 6 : null,
       right: 6,
-      left: compact ? 6 : null,
-      bottom: 72,
-      width: compact ? null : panelWidth,
-      height: panelHeight,
+      left: fullScreen ? 6 : (compact ? 6 : null),
+      bottom: fullScreen ? 6 : 72,
+      width: fullScreen || compact ? null : panelWidth,
+      height: fullScreen ? null : panelHeight,
       child: Card(
         elevation: 18,
         clipBehavior: Clip.antiAlias,
@@ -1126,7 +1192,23 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                         IconButton(
                           onPressed: () {
                             setState(() {
+                              _aiPanelFullscreen = !_aiPanelFullscreen;
+                            });
+                          },
+                          icon: Icon(
+                            fullScreen
+                                ? Icons.fullscreen_exit_rounded
+                                : Icons.fullscreen_rounded,
+                          ),
+                          tooltip: fullScreen
+                              ? 'Exit full screen'
+                              : 'Open full screen',
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
                               _panelVisible = false;
+                              _aiPanelFullscreen = false;
                             });
                           },
                           icon: const Icon(Icons.close),
@@ -1404,6 +1486,76 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.assistant_rounded),
+                title: const Text('Assistant quick panel'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openAssistantQuickSheet();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.fullscreen_rounded),
+                title: const Text('Open AI in full screen'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openAiPanel(fullScreen: true, focusPrompt: true);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bolt_rounded),
+                title: const Text('AI control browser'),
+                subtitle: const Text(
+                  'Say "open...", "search...", "new tab..."',
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openAiBrowserActionSheet();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.mic_rounded),
+                title: Text(
+                  _listening ? 'Stop voice mode' : 'Start voice mode',
+                ),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _togglePromptVoiceInput();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.visibility_outlined),
+                title: const Text('Send page context to AI'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _appendPageContextToChat();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_back_outlined),
+                title: const Text('Send page snapshot to AI'),
+                subtitle: const Text('Visual-like summary from viewport'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _appendPageSnapshotToChat();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.summarize_outlined),
+                title: const Text('Summarize page'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _summarizeOpenPage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.analytics_outlined),
+                title: const Text('Analyze open page'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _analyzeOpenPage();
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.folder_open_outlined),
                 title: const Text('Open file or photo'),
                 onTap: () {
@@ -1492,6 +1644,164 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
         );
       },
     );
+  }
+
+  Future<void> _openAssistantQuickSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Assistant',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Quick one-hand controls',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    ActionChip(
+                      avatar: const Icon(Icons.chat_bubble_outline_rounded),
+                      label: const Text('Chat'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _openAiPanel(fullScreen: false, focusPrompt: true);
+                      },
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.fullscreen_rounded),
+                      label: const Text('Full screen'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _openAiPanel(fullScreen: true, focusPrompt: true);
+                      },
+                    ),
+                    ActionChip(
+                      avatar: Icon(
+                        _listening ? Icons.mic_off_rounded : Icons.mic_rounded,
+                      ),
+                      label: Text(_listening ? 'Stop voice' : 'Voice'),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _togglePromptVoiceInput();
+                      },
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.bolt_rounded),
+                      label: const Text('AI control'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _openAiBrowserActionSheet();
+                      },
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.visibility_outlined),
+                      label: const Text('Context'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _appendPageContextToChat();
+                      },
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.photo_camera_back_outlined),
+                      label: const Text('Snapshot'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _appendPageSnapshotToChat();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openAiBrowserActionSheet() async {
+    final TextEditingController commandController = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: 12 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text(
+                  'AI Browser Control',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: commandController,
+                  minLines: 1,
+                  maxLines: 4,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) async {
+                    final String command = commandController.text.trim();
+                    Navigator.of(context).pop();
+                    await _runAiBrowserCommand(command);
+                  },
+                  decoration: const InputDecoration(
+                    hintText: 'Example: open youtube and summarize page',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          final String command = commandController.text.trim();
+                          Navigator.of(context).pop();
+                          await _runAiBrowserCommand(command);
+                        },
+                        child: const Text('Run'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    commandController.dispose();
   }
 
   Future<void> _openHistorySheet() async {
@@ -1708,6 +2018,58 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.visibility_outlined),
+                title: const Text('Send page context to chat'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _appendPageContextToChat();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_back_outlined),
+                title: const Text('Send page snapshot to chat'),
+                subtitle: const Text('Visual-like summary from viewport'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _appendPageSnapshotToChat();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bolt_rounded),
+                title: const Text('AI control browser'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openAiBrowserActionSheet();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.fullscreen_rounded),
+                title: Text(
+                  _aiPanelFullscreen
+                      ? 'Exit AI full screen'
+                      : 'Open AI full screen',
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _panelVisible = true;
+                    _aiPanelFullscreen = !_aiPanelFullscreen;
+                  });
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  _listening ? Icons.mic_off_rounded : Icons.mic_rounded,
+                ),
+                title: Text(
+                  _listening ? 'Stop voice mode' : 'Start voice mode',
+                ),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _togglePromptVoiceInput();
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.folder_open_outlined),
                 title: const Text('Open file or photo'),
                 onTap: () {
@@ -1766,10 +2128,46 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
       return;
     }
     if (_promptHasText) {
-      await _sendPrompt();
+      final String prompt = _promptController.text.trim();
+      if (_isLikelyBrowserControlPrompt(prompt)) {
+        _promptController.clear();
+        await _runAiBrowserCommand(prompt);
+      } else {
+        await _sendPrompt();
+      }
       return;
     }
     await _togglePromptVoiceInput();
+  }
+
+  bool _isLikelyBrowserControlPrompt(String text) {
+    final String normalized = text.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    const List<String> commandPrefixes = <String>[
+      'open ',
+      'go to ',
+      'search ',
+      'find ',
+      'new tab',
+      'summarize page',
+      'analyze page',
+      'extract key points',
+      'translate page',
+      'open ai',
+      'відкрий',
+      'перейди на',
+      'пошукай',
+      'знайди',
+      'нова вкладка',
+      'створи вкладку',
+      'підсумуй сторінку',
+      'проаналізуй сторінку',
+      'переклади сторінку',
+      'відкрий чат',
+    ];
+    return commandPrefixes.any(normalized.startsWith);
   }
 
   void _pushHistory(String url, String title) {
@@ -2118,6 +2516,247 @@ Return:
     );
   }
 
+  Future<void> _appendPageContextToChat() async {
+    final String contextSnippet = await _collectPageContextSnippet();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _chat.add(_ChatMessage.assistant('Page context:\n\n$contextSnippet'));
+    });
+    _syncActiveAiSessionFromChat();
+  }
+
+  Future<void> _appendPageSnapshotToChat() async {
+    final String snapshot = await _collectPageSnapshotSnippet();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _chat.add(
+        _ChatMessage.assistant(
+          'Page snapshot (for AI understanding):\n\n$snapshot',
+        ),
+      );
+    });
+    _syncActiveAiSessionFromChat();
+  }
+
+  Future<String> _collectPageSnapshotSnippet() async {
+    final dynamic rawSnapshot = await _webViewController
+        .runJavaScriptReturningResult('''
+      (() => {
+        const text = (document.body?.innerText ?? '').replace(/\\s+/g, ' ').trim().slice(0, 1200);
+        const headings = Array.from(document.querySelectorAll('h1,h2,h3'))
+          .map((el) => (el.innerText || '').trim())
+          .filter((value) => value.length > 0)
+          .slice(0, 6);
+        const links = Array.from(document.querySelectorAll('a'))
+          .map((el) => (el.innerText || '').trim())
+          .filter((value) => value.length > 1)
+          .slice(0, 8);
+        return JSON.stringify({
+          title: document.title || '',
+          viewport: String(window.innerWidth) + 'x' + String(window.innerHeight),
+          headings,
+          links,
+          text
+        });
+      })();
+    ''');
+
+    final String decodedSnapshot = _decodeJsString(rawSnapshot);
+    if (decodedSnapshot.trim().isEmpty) {
+      return 'Snapshot is unavailable for this page.';
+    }
+
+    try {
+      final dynamic parsed = jsonDecode(decodedSnapshot);
+      if (parsed is! Map<String, dynamic>) {
+        return decodedSnapshot;
+      }
+      final String title = parsed['title']?.toString().trim() ?? '';
+      final String viewport = parsed['viewport']?.toString().trim() ?? '';
+      final List<dynamic> headingsRaw = parsed['headings'] is List
+          ? parsed['headings'] as List<dynamic>
+          : <dynamic>[];
+      final List<dynamic> linksRaw = parsed['links'] is List
+          ? parsed['links'] as List<dynamic>
+          : <dynamic>[];
+      final String text = parsed['text']?.toString().trim() ?? '';
+      final String headings = headingsRaw
+          .map((dynamic value) => value.toString().trim())
+          .where((String value) => value.isNotEmpty)
+          .map((String value) => '- $value')
+          .join('\n');
+      final String links = linksRaw
+          .map((dynamic value) => value.toString().trim())
+          .where((String value) => value.isNotEmpty)
+          .map((String value) => '- $value')
+          .join('\n');
+
+      return '''
+URL: $_currentUrl
+Title: ${title.isEmpty ? 'Unknown' : title}
+Viewport: ${viewport.isEmpty ? 'Unknown' : viewport}
+Top headings:
+${headings.isEmpty ? '- none' : headings}
+Visible links:
+${links.isEmpty ? '- none' : links}
+Visible text snapshot:
+$text
+''';
+    } catch (_) {
+      return decodedSnapshot;
+    }
+  }
+
+  Future<void> _runAiBrowserCommand(String instruction) async {
+    final String normalizedInstruction = instruction.trim();
+    if (normalizedInstruction.isEmpty) {
+      _showSnack('Enter a browser command first');
+      return;
+    }
+    if (_thinking || _aiService.isGenerating) {
+      _showSnack('Please wait until current AI action is finished');
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    if (!_panelVisible) {
+      _openAiPanel(fullScreen: false);
+    }
+    setState(() {
+      _chat.add(_ChatMessage.user('Browser command: $normalizedInstruction'));
+    });
+    _syncActiveAiSessionFromChat();
+
+    final List<AiChatMessage> messages = <AiChatMessage>[
+      const AiChatMessage(
+        role: 'system',
+        content:
+            'Convert user browser intent into one JSON object only. No markdown. No extra text. '
+            'Allowed actions: open_url, search, new_tab, summarize_page, analyze_page, extract_points, '
+            'translate_page, show_context, show_snapshot, open_ai_panel, open_ai_fullscreen, none. '
+            'JSON shape: {"action":"...","url":"optional","query":"optional","reason":"optional"}',
+      ),
+      AiChatMessage(role: 'user', content: normalizedInstruction),
+    ];
+
+    try {
+      final String rawResult = await _aiService.complete(
+        model: _selectedModel,
+        messages: messages,
+      );
+      final Map<String, dynamic>? payload = _extractFirstJsonObject(rawResult);
+      final String executionMessage = await _executeAiBrowserAction(payload);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _chat.add(_ChatMessage.assistant(executionMessage));
+      });
+      _syncActiveAiSessionFromChat();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _chat.add(_ChatMessage.assistant('Browser control error: $error'));
+      });
+      _syncActiveAiSessionFromChat();
+    }
+  }
+
+  Map<String, dynamic>? _extractFirstJsonObject(String rawText) {
+    final String trimmed = rawText.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final int start = trimmed.indexOf('{');
+    final int end = trimmed.lastIndexOf('}');
+    if (start < 0 || end <= start) {
+      return null;
+    }
+    final String candidate = trimmed.substring(start, end + 1);
+    try {
+      final dynamic parsed = jsonDecode(candidate);
+      if (parsed is Map<String, dynamic>) {
+        return parsed;
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  Future<String> _executeAiBrowserAction(Map<String, dynamic>? payload) async {
+    if (payload == null || payload.isEmpty) {
+      return 'I could not parse a browser action. Try a clearer command.';
+    }
+
+    final String action =
+        (payload['action']?.toString().trim().toLowerCase() ?? 'none');
+    final String url = payload['url']?.toString().trim() ?? '';
+    final String query = payload['query']?.toString().trim() ?? '';
+    final String reason = payload['reason']?.toString().trim() ?? '';
+
+    switch (action) {
+      case 'open_url':
+        final String target = url.isNotEmpty ? url : query;
+        if (target.isEmpty) {
+          return 'No URL provided for open action.';
+        }
+        final String normalized = _normalizeToUrl(target);
+        await _loadUrlIntoCurrent(Uri.parse(normalized));
+        return 'Opened: $normalized';
+      case 'search':
+        final String targetQuery = query.isNotEmpty ? query : url;
+        if (targetQuery.isEmpty) {
+          return 'No search query provided.';
+        }
+        await _loadUrlIntoCurrent(_searchEngine.buildSearchUri(targetQuery));
+        return 'Search started: "$targetQuery"';
+      case 'new_tab':
+        final String target = url.isNotEmpty ? url : query;
+        await _newTab(target.isEmpty ? null : target);
+        return target.isEmpty
+            ? 'Opened a new tab.'
+            : 'Opened new tab: ${_normalizeToUrl(target)}';
+      case 'summarize_page':
+        await _summarizeOpenPage();
+        return 'Started page summary.';
+      case 'analyze_page':
+        await _analyzeOpenPage();
+        return 'Started page analysis.';
+      case 'extract_points':
+        await _extractPageKeyPoints();
+        return 'Extracting key points.';
+      case 'translate_page':
+        await _translateOpenPageToUkrainian();
+        return 'Translating page to Ukrainian.';
+      case 'show_context':
+        await _appendPageContextToChat();
+        return 'Added current page context to chat.';
+      case 'show_snapshot':
+        await _appendPageSnapshotToChat();
+        return 'Added page snapshot to chat.';
+      case 'open_ai_panel':
+        _openAiPanel(fullScreen: false, focusPrompt: true);
+        return 'Opened AI panel.';
+      case 'open_ai_fullscreen':
+        _openAiPanel(fullScreen: true, focusPrompt: true);
+        return 'Opened AI panel in full screen mode.';
+      default:
+        if (reason.isNotEmpty) {
+          return 'No executable action: $reason';
+        }
+        return 'No executable browser action found.';
+    }
+  }
+
   Future<String> _collectPageContextSnippet() async {
     final String title = (await _webViewController.getTitle())?.trim() ?? '';
     final dynamic rawBody = await _webViewController
@@ -2335,6 +2974,238 @@ $bodyText
       _promptController.clear();
     });
     _schedulePersistAiSessions();
+  }
+
+  Future<void> _exportBrowserBackupToDevice() async {
+    final DateTime now = DateTime.now();
+    final String safeTimestamp = now
+        .toIso8601String()
+        .replaceAll(':', '-')
+        .replaceAll('.', '-');
+    final String fileName = 'olewser-backup-$safeTimestamp.json';
+    final Map<String, dynamic> payload = _buildBackupPayload();
+    final String backupText = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(payload);
+
+    try {
+      final String? outputDirectory = await FilePicker.platform
+          .getDirectoryPath(dialogTitle: 'Choose folder for Olewser backup');
+
+      if (outputDirectory == null || outputDirectory.trim().isEmpty) {
+        return;
+      }
+
+      final String outputPath =
+          '$outputDirectory${Platform.pathSeparator}$fileName';
+      final File target = File(outputPath);
+      await target.create(recursive: true);
+      await target.writeAsString(backupText, flush: true, encoding: utf8);
+      _showSnack('Backup exported');
+    } catch (error) {
+      _showSnack('Backup export failed: $error');
+    }
+  }
+
+  Future<void> _importBrowserBackupFromDevice() async {
+    try {
+      final FilePickerResult? picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: <String>['json'],
+        withData: true,
+      );
+      if (picked == null || picked.files.isEmpty) {
+        return;
+      }
+
+      final PlatformFile file = picked.files.first;
+      String rawBackup = '';
+      if (file.bytes != null && file.bytes!.isNotEmpty) {
+        rawBackup = utf8.decode(file.bytes!, allowMalformed: true);
+      } else if (file.path != null && file.path!.trim().isNotEmpty) {
+        rawBackup = await File(file.path!).readAsString();
+      }
+
+      if (rawBackup.trim().isEmpty) {
+        _showSnack('Selected file is empty');
+        return;
+      }
+
+      final dynamic decoded = jsonDecode(rawBackup);
+      final Map<String, dynamic>? root = _asStringDynamicMap(decoded);
+      if (root == null) {
+        _showSnack('Invalid backup format');
+        return;
+      }
+
+      await _applyImportedBackup(root);
+      _showSnack('Backup imported');
+    } catch (error) {
+      _showSnack('Backup import failed: $error');
+    }
+  }
+
+  Map<String, dynamic> _buildBackupPayload() {
+    return <String, dynamic>{
+      'schemaVersion': 1,
+      'app': 'Olewser',
+      'exportedAtMillis': DateTime.now().millisecondsSinceEpoch,
+      'ui': <String, dynamic>{
+        'themeMode': _themeModeToString(widget.currentThemeMode),
+        'accentColor': widget.currentAccentColor.toARGB32(),
+      },
+      'preferences': <String, dynamic>{
+        'homePage': _homePage,
+        'searchEngine': _searchEngine.key,
+        'aggressiveAdBlock': _aggressiveAdBlock,
+        'panelVisibleDefault': _panelVisibleDefault,
+        'attachPageContext': _attachPageContext,
+        'aiLanguage': _aiResponseLanguage.key,
+        'searchEngineAsHome': _searchEngineAsHome,
+        'pageZoomPercent': _pageZoomPercent,
+      },
+      'tabs': _tabs.map((t) => t.toJson()).toList(growable: false),
+      'activeTabIndex': _activeTabIndex,
+      'history': _history.map((h) => h.toJson()).toList(growable: false),
+      'savedSites': _savedSites.map((s) => s.toJson()).toList(growable: false),
+      'aiSessions': _aiSessions.map((s) => s.toJson()).toList(growable: false),
+      'activeAiSessionIndex': _activeAiSessionIndex,
+    };
+  }
+
+  Future<void> _applyImportedBackup(Map<String, dynamic> backup) async {
+    final Map<String, dynamic> prefs =
+        _asStringDynamicMap(backup['preferences']) ?? backup;
+    final Map<String, dynamic> ui =
+        _asStringDynamicMap(backup['ui']) ?? <String, dynamic>{};
+
+    final _SearchEngine importedEngine = _searchEngineFromKey(
+      (prefs['searchEngine'] ?? _searchEngine.key).toString(),
+    );
+    final bool importedSearchEngineAsHome = _toBool(
+      prefs['searchEngineAsHome'],
+      fallback: _searchEngineAsHome,
+    );
+    final String importedHome = importedSearchEngineAsHome
+        ? _searchEngineHomePage(importedEngine)
+        : _normalizeToUrl((prefs['homePage'] ?? _homePage).toString());
+
+    final List<_MobileTab> importedTabs = _decodeTabs(
+      jsonEncode(backup['tabs'] ?? <dynamic>[]),
+      fallbackUrl: importedHome,
+    );
+    final int importedTabIndex = _toInt(
+      backup['activeTabIndex'],
+      fallback: _activeTabIndex,
+    ).clamp(0, importedTabs.length - 1).toInt();
+
+    final List<_HistoryEntry> importedHistory = _decodeHistory(
+      jsonEncode(backup['history'] ?? <dynamic>[]),
+    );
+    final List<_SavedSite> importedSavedSites = _decodeSavedSites(
+      jsonEncode(backup['savedSites'] ?? <dynamic>[]),
+    );
+    final List<_AiSession> importedAiSessions = _decodeAiSessions(
+      jsonEncode(backup['aiSessions'] ?? <dynamic>[]),
+    );
+    final int importedAiSessionIndex = _toInt(
+      backup['activeAiSessionIndex'],
+      fallback: _activeAiSessionIndex,
+    ).clamp(0, importedAiSessions.length - 1).toInt();
+
+    final ThemeMode importedTheme = _themeModeFromString(
+      (ui['themeMode'] ?? _themeModeToString(widget.currentThemeMode))
+          .toString(),
+    );
+    final Color importedAccent = Color(
+      _toInt(ui['accentColor'], fallback: widget.currentAccentColor.toARGB32()),
+    );
+
+    setState(() {
+      _homePage = importedHome;
+      _searchEngine = importedEngine;
+      _searchEngineAsHome = importedSearchEngineAsHome;
+      _aggressiveAdBlock = _toBool(
+        prefs['aggressiveAdBlock'],
+        fallback: _aggressiveAdBlock,
+      );
+      _panelVisibleDefault = _toBool(
+        prefs['panelVisibleDefault'],
+        fallback: _panelVisibleDefault,
+      );
+      _attachPageContext = _toBool(
+        prefs['attachPageContext'],
+        fallback: _attachPageContext,
+      );
+      _aiResponseLanguage = _aiResponseLanguageFromKey(
+        (prefs['aiLanguage'] ?? _aiResponseLanguage.key).toString(),
+      );
+      _pageZoomPercent = _toInt(
+        prefs['pageZoomPercent'],
+        fallback: _pageZoomPercent,
+      ).clamp(50, 250).toInt();
+      _panelVisible = _panelVisibleDefault;
+      _aiPanelFullscreen = false;
+
+      _tabs
+        ..clear()
+        ..addAll(importedTabs);
+      _activeTabIndex = importedTabIndex;
+      _history
+        ..clear()
+        ..addAll(importedHistory);
+      _savedSites
+        ..clear()
+        ..addAll(importedSavedSites);
+      _aiSessions
+        ..clear()
+        ..addAll(importedAiSessions);
+      _activeAiSessionIndex = importedAiSessionIndex;
+      _chat
+        ..clear()
+        ..addAll(_aiSessions[_activeAiSessionIndex].messages);
+    });
+
+    widget.onThemeModeChanged(importedTheme);
+    widget.onAccentColorChanged(importedAccent);
+    await _savePreferences();
+    await _persistTabState();
+    await _persistHistoryState();
+    await _persistSavedSites();
+    await _persistAiSessions();
+
+    final String targetUrl = _tabs[_activeTabIndex].url;
+    await _loadUrlIntoCurrent(Uri.parse(targetUrl));
+  }
+
+  Map<String, dynamic>? _asStringDynamicMap(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    return raw.map(
+      (dynamic key, dynamic value) => MapEntry(key.toString(), value),
+    );
+  }
+
+  int _toInt(dynamic value, {required int fallback}) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  bool _toBool(dynamic value, {required bool fallback}) {
+    if (value is bool) {
+      return value;
+    }
+    final String normalized = value?.toString().trim().toLowerCase() ?? '';
+    if (normalized == 'true') {
+      return true;
+    }
+    if (normalized == 'false') {
+      return false;
+    }
+    return fallback;
   }
 
   Future<void> _openSettingsSheet() async {
@@ -2624,6 +3495,30 @@ $bodyText
                             _attachPageContext = value;
                           });
                           unawaited(_savePreferences());
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.upload_file_rounded),
+                        title: const Text('Export backup to device'),
+                        subtitle: const Text(
+                          'Save tabs, history, AI chats, and settings',
+                        ),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _exportBrowserBackupToDevice();
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.download_rounded),
+                        title: const Text('Import backup from device'),
+                        subtitle: const Text(
+                          'Restore all browser data after update',
+                        ),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await _importBrowserBackupFromDevice();
                         },
                       ),
                       ListTile(
