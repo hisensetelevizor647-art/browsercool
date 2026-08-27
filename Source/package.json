@@ -99,15 +99,16 @@
             "icon_backup.ico",
             "icon_black.png",
             "icon_cropped.png",
-            "icon_final.png",
-            "node_modules/**/*"
+            "icon_final.png"
         ],
         "extraResources": [],
         "asar": true,
         "nsis": {
             "oneClick": false,
-            "allowToChangeInstallationDirectory": true,
+            "allowToChangeInstallationDirectory": false,
             "perMachine": false,
+            "differentialPackage": false,
+            "guid": "c5598129-e85d-455b-9d41-3b7c4a30e84b",
             "createDesktopShortcut": "always",
             "createStartMenuShortcut": true,
             "shortcutName": "Olewser",

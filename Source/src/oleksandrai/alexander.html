@@ -129,123 +129,13 @@
             background: #ffffff;
         }
 
-        /* ??Quick actions Quick actions */
-        .sidebar {
-            width: 70px;
-            transition: all 0.3s ease;
-            background: #ffffff;
-            border-right: 1px solid #e5e7eb;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 0;
-            z-index: 40;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            transform: translateX(0);
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .sidebar.expanded {
-            width: 280px;
-        }
-
-        /* Camera?? ??? ??Quick actions? Camera */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: none !important;
-                width: 60px;
-            }
-
-            .sidebar.expanded {
-                width: 240px;
-            }
-
-            #header-new-chat span,
-            #header-back-to-chat span {
-                display: none;
-            }
-
-            #header-new-chat,
-            #header-back-to-chat {
-                padding: 6px 10px;
-            }
-        }
-
-        /* Team meeting Quick actions */
-        .sidebar button {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin: 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #374151;
-        }
-
-        .sidebar.expanded button {
-            width: 90%;
-            border-radius: 12px;
-            justify-content: flex-start;
-            padding: 12px;
-        }
-
-        .sidebar button:hover {
-            background: #e2e8f0;
-            transform: translateY(-1px);
-        }
-
-        .sidebar button.active {
-            background: #000;
-            color: white;
-        }
-
-        .sidebar svg {
-            width: 22px;
-            height: 22px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar.expanded svg {
-            margin-right: 12px;
-        }
-
-        .sidebar:not(.expanded) button span {
-            display: none;
-        }
-
         /* Hide legacy sidebar mode shortcuts */
         #search-btn,
         #images-btn,
         #translator-btn,
-        #widgets-btn {
-            display: none !important;
-        }
-
-        /* Keep folders and chat-history cluster together in sidebar */
+        #widgets-btn,
         #folders-btn {
-            order: 20;
-        }
-
-        #sidebar-chat-history-section {
-            order: 21;
-        }
-
-        #history-btn {
-            order: 22;
-        }
-
-        #settings-btn {
-            order: 99;
+            display: none !important;
         }
 
         .sidebar-history-section {
@@ -284,28 +174,60 @@
         .sidebar-history-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             width: 100%;
-            padding: 7px 8px;
-            border-radius: 10px;
-            border: 1px solid transparent;
-            font-size: 12px;
-            line-height: 1.2;
-            color: #1f2937;
+            padding: 9px 12px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.3;
+            color: #374151;
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-            background: rgba(255, 255, 255, 0.7);
+            transition: all 0.2s ease;
+            background: #ffffff;
+            margin-bottom: 4px;
         }
 
         .sidebar-history-item:hover {
-            background: #eef2ff;
-            border-color: #c7d2fe;
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            transform: translateX(2px);
         }
 
         .sidebar-history-item.active {
-            background: #111827;
-            color: #fff;
-            border-color: #111827;
+            background: #000000 !important;
+            color: #ffffff !important;
+            border-color: #000000 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        .sidebar-history-item.active .sidebar-history-item-title {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        .sidebar-history-item.active .sidebar-history-pin {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: #ffffff !important;
+            border: none;
+        }
+
+        body.dark .sidebar-history-item {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+
+        body.dark .sidebar-history-item:hover {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        body.dark .sidebar-history-item.active {
+            background: #000000 !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
         }
 
         .sidebar-history-item-title {
@@ -406,21 +328,15 @@
             transform: scale(1.02);
         }
 
-        /* ?Quick actions? */
+        /* Modern Full-Width Main Content */
         .main-content {
-            margin-left: 70px;
-            transition: margin-left 0.3s ease;
-            width: calc(100% - 70px);
+            margin-left: 0 !important;
+            width: 100% !important;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             background: #ffffff;
-        }
-
-        .sidebar.expanded~.main-content {
-            margin-left: 280px;
-            width: calc(100% - 280px);
         }
 
         /* Search ??? ???? */
@@ -2381,6 +2297,126 @@
             }
         }
 
+        
+        /* Ukrainian Cube Spinner Animation & Thinking UI */
+        .chat-message.is-loading-placeholder {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 4px 0 !important;
+            margin: 6px 0 !important;
+        }
+
+        .loader-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            min-width: 280px;
+            width: fit-content;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        body.dark .loader-container {
+            background: #1e293b;
+            border-color: #334155;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark .loader-container {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: #334155;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner-wrapper {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 4px;
+        }
+
+        .spinner {
+            --size: 13px;
+            --first-block-clr: #005bba;
+            --second-block-clr: #fed500;
+            width: 28px;
+            height: 28px;
+            position: relative;
+            display: block;
+        }
+
+        .spinner::after, 
+        .spinner::before {
+            box-sizing: border-box;
+            position: absolute;
+            content: "";
+            width: var(--size);
+            height: var(--size);
+            top: 50%;
+            left: 50%;
+            background: var(--first-block-clr);
+            border-radius: 3.5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            animation: cube_up 2.2s cubic-bezier(0, 0, 0.24, 1.21) infinite;
+        }
+
+        .spinner::after {
+            background: var(--second-block-clr);
+            top: calc(50% - var(--size));
+            left: calc(50% - var(--size));
+            animation: cube_down 2.2s cubic-bezier(0, 0, 0.24, 1.21) infinite;
+        }
+
+        @keyframes cube_down {
+            0%, 100% { transform: none; }
+            25% { transform: translateX(100%); }
+            50% { transform: translateX(100%) translateY(100%); }
+            75% { transform: translateY(100%); }
+        }
+
+        @keyframes cube_up {
+            0%, 100% { transform: none; }
+            25% { transform: translateX(-100%); }
+            50% { transform: translateX(-100%) translateY(-100%); }
+            75% { transform: translateY(-100%); }
+        }
+
+        /* Enhanced message typography */
+        .chat-message {
+            max-width: 85%;
+            word-wrap: break-word;
+            position: relative;
+            margin: 12px 0;
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            letter-spacing: -0.01em;
+        }
+
+        .chat-message.assistant {
+            align-self: flex-start;
+            background-color: #ffffff;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background-color: #0f172a;
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
         .animate-spin {
             animation: spin 1s linear infinite;
         }
@@ -3506,6 +3542,32 @@
             line-height: 1.6 !important;
         }
 
+    
+        /* Ensure Header and Actions are fully interactive and unblocked */
+        #app-header {
+            position: relative;
+            z-index: 100 !important;
+            pointer-events: auto !important;
+        }
+
+        #app-header * {
+            pointer-events: auto;
+        }
+
+        #header-actions {
+            position: relative;
+            z-index: 101 !important;
+            pointer-events: auto !important;
+        }
+
+        #header-new-chat {
+            position: relative;
+            z-index: 102 !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            user-select: none;
+        }
+
     </style>
     <link rel="stylesheet" href="styles.css">
 <style>
@@ -3551,13 +3613,49 @@
             transform: translateX(-100%) !important;
             transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
             box-shadow: 0 0 35px rgba(0, 0, 0, 0.18) !important;
-            padding: 16px !important;
+            padding: 16px 14px !important;
             display: flex !important;
             flex-direction: column !important;
-            overflow-y: auto !important;
+            overflow: hidden !important;
             visibility: visible !important;
             pointer-events: auto !important;
             box-sizing: border-box !important;
+        }
+
+        body.dark #sidebar.sidebar {
+            background: #0f172a !important;
+            border-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        #sidebar-chat-history-section {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            margin-bottom: 12px !important;
+        }
+
+        #sidebar-chat-history-list {
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            min-height: 50px !important;
+        }
+
+        .sidebar-bottom-pinned {
+            margin-top: auto !important;
+            flex-shrink: 0 !important;
+            width: 100% !important;
+            border-top: 1px solid #e2e8f0 !important;
+            padding-top: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+        }
+
+        body.dark .sidebar-bottom-pinned {
+            border-color: #334155 !important;
         }
 
         #sidebar.sidebar.open {
@@ -3656,12 +3754,20 @@
         </div>
 
         <!-- New Chat Button -->
-        <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-black text-white font-semibold hover:bg-gray-800 transition-all shadow-sm mb-3 cursor-pointer">
+        <button id="new-chat-btn" onclick="if(window.handleNewChat){window.handleNewChat();}else{console.error('handleNewChat missing')}" class="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-black text-white font-semibold hover:bg-gray-800 transition-all shadow-sm mb-2 cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor">
                 <path d="M475.136 561.152v89.74336c0 20.56192 16.50688 37.23264 36.864 37.23264s36.864-16.67072 36.864-37.23264v-89.7024h89.7024c20.60288 0 37.2736-16.54784 37.2736-36.864 0-20.39808-16.67072-36.864-37.2736-36.864H548.864V397.63968A37.0688 37.0688 0 0 0 512 360.448c-20.35712 0-36.864 16.67072-36.864 37.2736v89.7024H385.4336a37.0688 37.0688 0 0 0-37.2736 36.864c0 20.35712 16.67072 36.864 37.2736 36.864h89.7024z" />
                 <path d="M512 118.784c-223.96928 0-405.504 181.57568-405.504 405.504 0 78.76608 22.44608 152.3712 61.35808 214.6304l-44.27776 105.6768a61.44 61.44 0 0 0 56.68864 85.1968H512c223.92832 0 405.504-181.53472 405.504-405.504 0-223.92832-181.57568-405.504-405.504-405.504z m-331.776 405.504a331.776 331.776 0 1 1 331.73504 331.776H198.656l52.59264-125.5424-11.59168-16.62976A330.09664 330.09664 0 0 1 180.224 524.288z" />
             </svg>
             <span id="new-chat-text" class="text-xs">Новий чат</span>
+        </button>
+
+        <!-- Oleksandr's Hub Button directly under New Chat -->
+        <button id="oleksandr-hub-btn" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/50 transition-colors text-left text-xs font-semibold cursor-pointer mb-3 border border-indigo-100 dark:border-indigo-800" onclick="window.open('https://oleksandrai.netlify.app', '_blank')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600 dark:text-indigo-400">
+                <path d="M7 7h10v10" /><path d="M7 17 17 7" />
+            </svg>
+            <span class="truncate font-semibold">Oleksandr's Hub</span>
         </button>
 
         <!-- Middle: Expanded Chat History Section (takes all remaining space) -->
@@ -3673,8 +3779,8 @@
         </div>
 
         <!-- Bottom: Navigation & Settings Pinned Section -->
-        <div class="border-t border-gray-100 pt-2 flex flex-col gap-1 w-full mt-auto">
-            <button id="history-btn" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors text-left text-xs font-medium cursor-pointer">
+        <div class="sidebar-bottom-pinned">
+            <button id="history-btn" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors text-left text-xs font-medium cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
@@ -3682,19 +3788,12 @@
                 <span id="history-text">Повна історія</span>
             </button>
 
-            <button id="settings-btn" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors text-left text-xs font-medium cursor-pointer">
+            <button id="settings-btn" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors text-left text-xs font-medium cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
                 <span id="settings-text">Налаштування</span>
-            </button>
-
-            <button id="oleksandr-hub-btn" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 transition-colors text-left text-xs font-semibold cursor-pointer" onclick="window.open('https://oleksandrai.netlify.app', '_blank')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600">
-                    <path d="M7 7h10v10" /><path d="M7 17 17 7" />
-                </svg>
-                <span class="truncate">Oleksandr's Hub</span>
             </button>
         </div>
     </div>
@@ -3735,7 +3834,8 @@
                 </button>
 
                 <button id="header-new-chat"
-                    class="px-4 py-2 rounded-full bg-black text-white font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2">
+                    onclick="if(window.handleNewChat){window.handleNewChat();}else{console.error('handleNewChat not defined')}"
+                    class="px-4 py-2 rounded-full bg-black text-white font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2 cursor-pointer z-50">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 1024 1024"
                         fill="currentColor">
                         <path
@@ -5706,7 +5806,7 @@
                     return;
                 }
 
-                const itemsHtml = chats.slice(0, 8).map((chat) => {
+                const itemsHtml = chats.map((chat) => {
                     const title = (chat?.title && String(chat.title).trim()) || untitledText;
                     const activeClass = state.currentChatId === chat.id ? ' active' : '';
                     const pinLabel = chat?.pinned ? '<span class="sidebar-history-pin">PIN</span>' : '';
@@ -6066,25 +6166,27 @@
                     updateInputCentering();
 
                     state.messages.forEach(msg => {
+                        let content = msg.content || '';
+                        const isHtmlPlaceholder = content.startsWith('<div class="loader-container') || content.startsWith('<div class="oa-loading-placeholder') || content.startsWith('<div class="flex items-center');
+
                         const msgDiv = document.createElement('div');
-                        msgDiv.className = `chat-message ${msg.role}`;
+                        msgDiv.className = `chat-message ${msg.role}${isHtmlPlaceholder ? ' is-loading-placeholder' : ''}`;
 
                         // Extract thinking process if present (before escaping HTML)
                         let thinkingContent = '';
-                        let content = msg.content;
 
                         // Match <think>...</think> blocks, handling multiline ([\s\S]*?)
-                        // Also handles cases where the tag might be split or varying case
                         const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/i);
 
                         if (thinkMatch) {
                             thinkingContent = thinkMatch[1].trim();
-                            // Remove the thinking block from the main content
                             content = content.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
                         }
-
-                        // Escape HTML special characters in the main content
-                        content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        
+                        if (!isHtmlPlaceholder) {
+                            // Escape HTML special characters in regular user/AI text
+                            content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        }
 
                         // If we have thinking content, format it
                         let thinkingHtml = '';
@@ -6098,8 +6200,8 @@
                             `;
                         }
 
-                        // Add action buttons for assistant messages
-                        if (msg.role === 'assistant') {
+                        // Add action buttons for assistant messages (skip if loading placeholder)
+                        if (msg.role === 'assistant' && !isHtmlPlaceholder) {
                             const actionsDiv = document.createElement('div');
                             actionsDiv.className = 'message-actions';
                             actionsDiv.innerHTML = `
@@ -6294,14 +6396,19 @@
                     }
                 },
                 aiModeSwitcher: () => {
-                    const buttons = dom.aiModeSwitcher.querySelectorAll('.ai-mode-btn');
-                    buttons.forEach(btn => {
-                        if (btn.dataset.mode === state.aiMode) {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
-                    });
+                    if (dom.aiModeSwitcher) {
+                        const buttons = dom.aiModeSwitcher.querySelectorAll('.ai-mode-btn');
+                        buttons.forEach(btn => {
+                            if (btn.dataset.mode === state.aiMode) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        });
+                    }
+                    if (typeof setCurrentProLabel === 'function') {
+                        try { setCurrentProLabel(state.aiMode); } catch(e) {}
+                    }
 
                     // Update prompt AI selector
                     if (dom.promptAiSelector) {
@@ -6314,8 +6421,6 @@
                             }
                         });
                     }
-
-                    // Welcome message update logic removed. New centered-welcome handles initial state.
                 },
                 backToChatButton: () => {
                     if (state.mode === 'chat') {
@@ -6334,6 +6439,98 @@
                 render.all();
             }
             window.setMode = setMode;
+
+            // Define handleNewChat
+            function handleNewChat(folderId = null) {
+                try {
+                    // Abort any ongoing stream
+                    if (state.abortController) {
+                        try { state.abortController.abort(); } catch(e) {}
+                        state.abortController = null;
+                    }
+                    if (window._oaThinkingInterval) {
+                        clearInterval(window._oaThinkingInterval);
+                        window._oaThinkingInterval = null;
+                    }
+
+                    // Reset all conversation state
+                    state.messages = [];
+                    state.currentChatId = null;
+                    state.attachedFiles = [];
+                    state.activeProjectFolderId = folderId;
+                    state.isLoading = false;
+                    state.searchActive = false;
+                    state.imageGenActive = false;
+                    state.codeActive = false;
+
+                    // Direct DOM reset for input and chips
+                    const chatInput = document.getElementById('chat-input');
+                    if (chatInput) {
+                        chatInput.value = '';
+                        chatInput.style.height = 'auto';
+                    }
+                    const attachments = document.getElementById('file-attachments');
+                    if (attachments) attachments.innerHTML = '';
+                    
+                    document.getElementById('search-mode-chip')?.classList.add('hidden');
+                    document.getElementById('image-gen-mode-chip')?.classList.add('hidden');
+                    document.getElementById('code-mode-chip')?.classList.add('hidden');
+
+                    // Force chat mode in UI
+                    state.mode = 'chat';
+                    document.body.dataset.mode = 'chat';
+                    
+                    document.querySelectorAll('.mode-content').forEach(content => content.classList.add('hidden'));
+                    const chatModeEl = document.getElementById('mode-chat');
+                    if (chatModeEl) chatModeEl.classList.remove('hidden');
+
+                    // Clear messages container directly & show welcome
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) {
+                        chatMessages.innerHTML = '';
+                    }
+
+                    const centeredWelcome = document.getElementById('centered-welcome');
+                    if (centeredWelcome) centeredWelcome.classList.remove('hidden');
+                    const mobileWelcome = document.getElementById('mobile-welcome');
+                    if (mobileWelcome) {
+                        if (window.innerWidth < 769) mobileWelcome.classList.remove('hidden');
+                        else mobileWelcome.classList.add('hidden');
+                    }
+
+                    document.body.classList.add('input-centered');
+
+                    // Re-render UI safely
+                    try { if (typeof render !== 'undefined' && render.activeMode) render.activeMode(); } catch(e) { console.warn(e); }
+                    try { if (typeof render !== 'undefined' && render.messages) render.messages(); } catch(e) { console.warn(e); }
+                    try { if (typeof render !== 'undefined' && render.theme) render.theme(); } catch(e) { console.warn(e); }
+                    try { if (typeof render !== 'undefined' && render.aiModeSwitcher) render.aiModeSwitcher(); } catch(e) { console.warn(e); }
+                    try { if (typeof render !== 'undefined' && render.backToChatButton) render.backToChatButton(); } catch(e) { console.warn(e); }
+                    try { if (typeof renderSidebarChatHistory === 'function') renderSidebarChatHistory(); } catch(e) { console.warn(e); }
+                    try { if (typeof updateDynamicButton === 'function') updateDynamicButton(); } catch(e) { console.warn(e); }
+                    try { if (typeof updateInputCentering === 'function') updateInputCentering(); } catch(e) { console.warn(e); }
+                    
+                    // Close sidebar if open
+                    if (typeof window.closeSidebarDrawer === 'function') {
+                        try { window.closeSidebarDrawer(); } catch(e) {}
+                    }
+                    
+                    setTimeout(() => {
+                        const inputEl = document.getElementById('chat-input');
+                        if (inputEl) inputEl.focus();
+                    }, 50);
+                } catch (err) {
+                    console.error('Error in handleNewChat:', err);
+                }
+            }
+            window.handleNewChat = handleNewChat;
+
+            window.state = state;
+            window.render = render;
+            window.updateInputCentering = updateInputCentering;
+            window.renderSidebarChatHistory = renderSidebarChatHistory;
+            window.updateDynamicButton = updateDynamicButton;
+
 
             // Define handleSendMessage - core messaging pipeline
             async function handleSendMessage() {
@@ -6357,36 +6554,49 @@
                 updateDynamicButton();
                 render.messages();
 
-                // Loading state
+                // Loading state & Thinking Timer
                 state.isLoading = true;
                 updateDynamicButton();
                 state.abortController = new AbortController();
                 const signal = state.abortController.signal;
 
-                // Placeholder assistant message
+                const thinkingStartTime = Date.now();
+                
+                // Placeholder assistant message with Ukrainian Cube Spinner & Live Stopwatch
                 const placeholderMsg = {
                     role: 'assistant',
-                    content: '<div class="flex items-center gap-2 text-gray-500">' + LOADING_SVG + '<span>Генерую відповідь...</span></div>',
+                    content: '<div class="loader-container"><div class="spinner-wrapper"><div class="spinner"></div></div><div class="flex flex-col gap-0.5"><div class="flex items-center gap-2"><span class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-tight">OleksandrAi думає...</span><span class="oa-live-thinking-timer text-xs font-mono font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-700">0.0s</span></div><span class="text-xs text-gray-400 dark:text-gray-400">Генерую найкращу відповідь</span></div></div>',
                     timestamp: new Date().toISOString()
                 };
                 state.messages.push(placeholderMsg);
                 render.messages();
+
+                // Live stopwatch timer interval
+                if (window._oaThinkingInterval) clearInterval(window._oaThinkingInterval);
+                window._oaThinkingInterval = setInterval(() => {
+                    if (!state.isLoading) {
+                        clearInterval(window._oaThinkingInterval);
+                        return;
+                    }
+                    const elapsed = ((Date.now() - thinkingStartTime) / 1000).toFixed(1);
+                    const timerEl = document.querySelector('.oa-live-thinking-timer');
+                    if (timerEl) {
+                        timerEl.textContent = elapsed + 's';
+                    }
+                }, 100);
 
                 try {
                     let response = '';
                     const mode = state.aiMode || 'ultra-4';
 
                     if (state.searchActive) {
-                        response = await callPerplexitySonar(text, signal);
-                    } else if (mode === 'ultra-4' || mode === '4.0 ultra' || mode === 'ultra') {
-                        response = await callNvidiaPro3(text, signal);
-                    } else if (mode === 'pro-4' || mode === '4.0 pro' || mode === 'pro') {
-                        response = await callPollinationsKimi(text, signal);
-                    } else if (mode === 'fast-4' || mode === '4.0 fast' || mode === 'fast') {
-                        response = await callPollinationsDeepSeek(text, signal);
-                    } else if (mode === 'thinking') {
-                        response = await callPollinationsThinkingAPI(text, signal);
+                        try {
+                            response = await callPerplexitySonar(text, signal);
+                        } catch(e) {
+                            response = await callGeminiAPI('Знайди актуальну інформацію та дай відповідь: ' + text, signal);
+                        }
                     } else {
+                        // Call reliable Gemini pipeline
                         response = await callGeminiAPI(text, signal);
                     }
 
@@ -6407,6 +6617,10 @@
                         }
                     }
                 } finally {
+                    if (window._oaThinkingInterval) {
+                        clearInterval(window._oaThinkingInterval);
+                        window._oaThinkingInterval = null;
+                    }
                     state.isLoading = false;
                     state.abortController = null;
                     updateDynamicButton();
@@ -6824,16 +7038,22 @@
                 loadChat: function (chatId) {
                     const chat = state.chatHistory.find(c => c.id === chatId);
                     if (chat) {
-                        state.messages = [...chat.messages];
+                        state.messages = Array.isArray(chat.messages) ? [...chat.messages] : [];
                         state.currentChatId = chatId;
                         state.activeProjectFolderId = getChatFolderId(chatId);
-                        render.messages();
-                        setMode('chat');
-                        // On desktop, move input to bottom when loading history
+                        state.mode = 'chat';
+                        document.body.dataset.mode = 'chat';
+                        if (dom.modeContents) {
+                            dom.modeContents.forEach(content => content.classList.add('hidden'));
+                        }
+                        const chatModeEl = document.getElementById('mode-chat');
+                        if (chatModeEl) chatModeEl.classList.remove('hidden');
+                        render.all();
                         if (window.innerWidth >= 769) {
                             document.body.classList.remove('input-centered');
                         }
                         renderSidebarChatHistory();
+                        setTimeout(() => dom.chatInput?.focus(), 60);
                     }
                 },
 
@@ -7153,64 +7373,84 @@
                 });
             };
 
-            const callGeminiAPI = async (prompt, signal) => {
-                const parts = [];
+            const callGeminiAPI = async (text, signal) => {
+                const availableModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it', 'gemini-3.7-flash'];
+                let userPrompt = text;
 
-                // Add system prompt first
-                let textPart = MAUZER_SYSTEM_PROMPT + "\n\n" + prompt;
+                if (state.attachedFiles && state.attachedFiles.length > 0) {
+                    let fileContext = '\n\n[Прикріплені файли]:\n';
+                    state.attachedFiles.forEach(f => {
+                        fileContext += 'Файл: ' + f.name + '\n' + (f.content || '') + '\n\n';
+                    });
+                    userPrompt += fileContext;
+                }
 
-                // Process attached files
-                if (state.attachedFiles.length > 0) {
-                    textPart += "\n\nAttached files context:\n";
+                const thinkingBudgetMap = {
+                    'off': 0,
+                    'low': 1024,
+                    'medium': 4096,
+                    'high': 8192
+                };
+                const budget = thinkingBudgetMap[state.thinkingLevel] ?? 2048;
 
-                    for (const fileObj of state.attachedFiles) {
-                        if (fileObj.type.startsWith('image/')) {
-                            try {
-                                const base64Data = await fileToBase64(fileObj.file);
-                                parts.push({
-                                    inline_data: {
-                                        mime_type: fileObj.type,
-                                        data: base64Data
-                                    }
-                                });
-                            } catch (e) {
-                                console.error("Failed to process image for Gemini", e);
-                                textPart += `\n[Image Processing Failed: ${fileObj.name}]`;
+                let lastError = null;
+                for (const modelName of availableModels) {
+                    try {
+                        const payload = {
+                            contents: [
+                                {
+                                    role: 'user',
+                                    parts: [{ text: (typeof MAUZER_SYSTEM_PROMPT !== 'undefined' ? MAUZER_SYSTEM_PROMPT + '\n\n' : '') + userPrompt }]
+                                }
+                            ]
+                        };
+
+                        if (state.thinkingLevel && state.thinkingLevel !== 'off' && (state.aiMode === 'ultra-4' || state.aiMode === 'thinking')) {
+                            payload.generationConfig = {
+                                thinkingConfig: { thinkingBudget: budget }
+                            };
+                        }
+
+                        const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + GEMINI_API_KEY;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                            signal: signal
+                        });
+
+                        const data = await response.json();
+                        if (response.ok && data?.candidates?.[0]?.content?.parts) {
+                            const parts = data.candidates[0].content.parts;
+                            let outputText = '';
+                            let thinkingText = '';
+
+                            parts.forEach(p => {
+                                if (p.thoughtSignature || p.thought) {
+                                    thinkingText += (p.text || '') + '\n';
+                                } else if (p.text) {
+                                    outputText += p.text;
+                                }
+                            });
+
+                            if (!outputText && thinkingText) outputText = thinkingText;
+                            if (!outputText && parts[0]?.text) outputText = parts[0].text;
+
+                            if (outputText) {
+                                return outputText.trim();
                             }
                         } else {
-                            // Text based files
-                            textPart += `File: ${fileObj.name} \nContent: ${fileObj.content} \n\n`;
+                            lastError = new Error(data?.error?.message || ('HTTP ' + response.status));
+                            console.warn('Model ' + modelName + ' failed: ' + lastError.message);
                         }
+                    } catch(err) {
+                        if (err.name === 'AbortError') throw err;
+                        lastError = err;
+                        console.warn('Model ' + modelName + ' error: ' + err.message);
                     }
                 }
 
-                // Add the text part last
-                parts.push({ text: textPart });
-
-                const payload = {
-                    contents: [{ parts: parts }],
-                };
-
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${LLM_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload),
-                        signal: signal
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('API request failed');
-                    }
-
-                    const data = await response.json();
-                    return data.candidates[0].content.parts[0].text;
-                } catch (error) {
-                    console.error('Gemini API error:', error);
-                    throw new Error('Service temporarily unavailable. Please try again later.');
-                }
+                throw lastError || new Error('Всі моделі ШІ тимчасово недоступні. Спробуйте пізніше.');
             };
 
             // --- CONSTANTS ---
@@ -7945,13 +8185,47 @@ Respond in the same language as the user's query.`;
                 window.closeSidebarDrawer();
             });
 
-            // 2. FULL HISTORY NAVIGATION
+            // NEW CHAT BUTTONS (sidebar & header)
+            
+            // Attach History Tab listeners
+            document.querySelectorAll('.history-tab').forEach(tabBtn => {
+                tabBtn.addEventListener('click', () => {
+                    const targetTab = tabBtn.dataset.tab;
+                    if (typeof setHistoryTab === 'function') {
+                        setHistoryTab(targetTab);
+                    }
+                });
+            });
+
+            // Attach History Search listener
+            document.getElementById('history-search')?.addEventListener('input', (e) => {
+                const term = e.target.value;
+                if (typeof refreshHistoryCurrentTab === 'function') {
+                    refreshHistoryCurrentTab();
+                }
+            });
+
+            // Universal robust binding for all New Chat buttons
+            document.querySelectorAll('#new-chat-btn, #header-new-chat, .trigger-new-chat').forEach(el => {
+                el.onclick = (e) => {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    if (typeof window.handleNewChat === 'function') {
+                        window.handleNewChat();
+                    }
+                };
+            });
+
+            // 2. FULL HISTORY NAVIGATION (Opens History Screen Full Width)
             document.getElementById('history-btn')?.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.closeSidebarDrawer();
                 setMode('history');
                 setHistoryTab('chats');
+                historyFunctions.loadChatHistory(dom.historySearch?.value || '');
             });
 
             // 3. SETTINGS MODAL NAVIGATION
@@ -8350,10 +8624,12 @@ Respond in the same language as the user's query.`;
                 const show = (...els) => els.forEach(el => el && el.classList.remove('hidden'));
 
                 if (state.isLoading) {
-                    hide(micIcon, sendIcon, stopIcon);
-                    show(loaderIcon);
-                    btn.classList.add('loading');
-                    btn.classList.remove('recording', 'has-text');
+                    // Show STOP button (square) with pulsing red/dark background so user can abort anytime
+                    hide(micIcon, sendIcon, loaderIcon);
+                    show(stopIcon);
+                    btn.classList.add('recording');
+                    btn.classList.remove('loading', 'has-text');
+                    btn.title = 'Зупинити генерацію';
                 } else if (state.isRecording) {
                     hide(micIcon, sendIcon, loaderIcon);
                     show(stopIcon);
