@@ -1,13 +1,14 @@
 {
     "name": "olewser",
     "productName": "Olewser",
-    "version": "1.0.7",
+    "version": "1.0.16",
     "description": "Olewser - Fast, Dark, Minimal Web Browser",
     "main": "main.js",
     "scripts": {
         "start": "node scripts/run-electron.js",
         "dev": "node scripts/run-electron.js --dev",
-        "build": "electron-builder --win",
+        "build": "npm run build:win",
+        "build:win": "electron-builder --win && node scripts/create-update-setup.js",
         "build:mac": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml",
         "build:macos": "electron-builder --mac dmg zip --config macos-package/electron-builder.mac.yml"
     },
@@ -104,6 +105,12 @@
         "extraResources": [],
         "asar": true,
         "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "perMachine": false,
+            "createDesktopShortcut": "always",
+            "createStartMenuShortcut": true,
+            "shortcutName": "Olewser",
             "artifactName": "Olewser-Setup-${version}.exe",
             "installerIcon": "Olewser LOGO/main.ico",
             "uninstallerIcon": "Olewser LOGO/main.ico",

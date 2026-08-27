@@ -30,6 +30,16 @@
 
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => document.querySelectorAll(s);
+    const bootSearchParams = new URLSearchParams(window.location.search || '');
+    state.isIncognito = bootSearchParams.get('incognito') === '1';
+
+    function syncWindowIncognitoUi() {
+        const enabled = !!state.isIncognito;
+        document.documentElement.classList.toggle('window-incognito', enabled);
+        if (document.body) document.body.classList.toggle('window-incognito', enabled);
+    }
+
+    syncWindowIncognitoUi();
 
     // ============================================================
     // i18n TRANSLATIONS
@@ -266,6 +276,8 @@
         document.getElementById('btn-new-tab')?.setAttribute('title', t('newTab') + ' (Ctrl+T)');
         document.getElementById('btn-fs-toggle')?.setAttribute('title', t('toggleMenu'));
         document.getElementById('tab-counter')?.setAttribute('title', t('tabCount'));
+        const tabSwitcherTitleEl = document.querySelector('.tab-switcher-title');
+        if (tabSwitcherTitleEl) tabSwitcherTitleEl.textContent = t('tabCount');
         if (dom.findInput) dom.findInput.placeholder = t('findPlaceholder');
         document.getElementById('find-prev')?.setAttribute('title', t('findPrev'));
         document.getElementById('find-next')?.setAttribute('title', t('findNext'));
@@ -282,6 +294,9 @@
         tabsContainer: $('#tabs-container'),
         tabStrip: $('#tab-strip'),
         tabCounter: $('#tab-counter'),
+        tabSwitcherPanel: $('#tab-switcher-panel'),
+        tabSwitcherList: $('#tab-switcher-list'),
+        tabSwitcherCount: $('#tab-switcher-count'),
         btnNewTab: $('#btn-new-tab'),
         btnBack: $('#btn-back'),
         btnForward: $('#btn-forward'),
@@ -327,6 +342,8 @@
         commandResults: $('#command-results'),
         pulsePanel: $('#pulse-panel'),
         pulseClose: $('#pulse-close'),
+        pulseAdblockToggle: $('#pulse-adblock-toggle'),
+        pulseAdblockMode: $('#pulse-adblock-mode'),
         oleksandraiPanel: $('#oleksandrai-panel'),
         oleksandraiPanelHeader: $('#oleksandrai-panel-header'),
         oleksandraiPanelClose: $('#oleksandrai-panel-close'),
@@ -916,15 +933,15 @@
     let _preloadPath = ''; // Cached preload path from main process
 
     function createTab(url = '', opts = {}) {
+        const isIncog = !!opts.incognito || !!state.isIncognito;
         // Block creating duplicate OLEWSER home tabs (unless forced)
-        const isHomeTab = !url && !opts.incognito;
+        const isHomeTab = !url && !isIncog;
         if (isHomeTab && !opts._force) {
             const existing = state.tabs.find(tab => !tab.url || tab.url.includes('newtab.html'));
             if (existing) { switchTab(existing.id); return existing.id; }
         }
 
         const id = genId();
-        const isIncog = opts.incognito || false;
         const tab = {
             id, url: url || '', title: isIncog ? t('menuIncognito') : (isHomeTab ? 'OLEWSER' : (opts.title || t('newTab'))),
             favicon: url ? favicon(url) : '', loading: false,
@@ -960,11 +977,29 @@
         return id;
     }
 
+    function dismissPanelsForNewTab() {
+        hideContextMenu();
+        hideTabSwitcherPanel();
+        if (dom.pulsePanel) dom.pulsePanel.style.display = 'none';
+        if (dom.downloadsPanel) dom.downloadsPanel.style.display = 'none';
+        if (dom.commandPalette && dom.commandPalette.style.display !== 'none') toggleCommandPalette();
+        if (dom.findBar && dom.findBar.style.display !== 'none') toggleFindBar();
+        if (dom.oleksandraiPanel && dom.oleksandraiPanel.classList.contains('open')) closeOleksandraiPanel();
+        if (typeof aiState !== 'undefined' && aiState && aiState.isActive) closeAiVoiceAgent();
+    }
+
+    function openNewTabFromUser(url = '') {
+        dismissPanelsForNewTab();
+        if (url) return createTab(url);
+        return createTab('', { _force: true, incognito: state.isIncognito });
+    }
+
     function incognitoUrl() {
         return 'file:///' + __dirname.replace(/\\/g, '/') + '/incognito.html';
     }
 
     function createIncognitoTab() {
+        dismissPanelsForNewTab();
         createTab('', { incognito: true });
     }
 
@@ -996,6 +1031,30 @@
         dom.tabsContainer.appendChild(el);
     }
 
+    function ensureTabVisible(id, behavior = 'smooth') {
+        const strip = dom.tabStrip;
+        const el = document.getElementById('tab-el-' + id);
+        if (!strip || !el) return;
+
+        const reserveRight = (dom.btnNewTab?.offsetWidth || 0) + 14;
+        const currentLeft = strip.scrollLeft;
+        const visibleLeft = currentLeft + 8;
+        const visibleRight = currentLeft + strip.clientWidth - reserveRight - 8;
+        const tabLeft = el.offsetLeft;
+        const tabRight = tabLeft + el.offsetWidth;
+
+        let nextLeft = null;
+        if (tabLeft < visibleLeft) {
+            nextLeft = tabLeft - 12;
+        } else if (tabRight > visibleRight) {
+            nextLeft = tabRight - (strip.clientWidth - reserveRight) + 12;
+        }
+
+        if (nextLeft !== null) {
+            strip.scrollTo({ left: Math.max(0, nextLeft), behavior });
+        }
+    }
+
     function switchTab(id) {
         state.activeTabId = id;
         state.tabs.forEach(t => {
@@ -1017,6 +1076,8 @@
         }
         if (state.frozenTabs.has(id)) { state.frozenTabs.delete(id); updateFrostBadge(); }
         renderQuickAccess();
+        refreshTabSwitcherIfOpen();
+        ensureTabVisible(id, 'smooth');
     }
 
     function closeTab(id) {
@@ -1032,7 +1093,7 @@
         state.frozenTabs.delete(id);
         state.activeTabId = null;
 
-        if (state.tabs.length === 0) createTab('', { _force: true });
+        if (state.tabs.length === 0) createTab('', { _force: true, incognito: state.isIncognito });
         else if (state.activeTabId === null || state.activeTabId === id) switchTab(state.tabs[Math.min(idx, state.tabs.length - 1)].id);
         updateTabCounter();
     }
@@ -1140,8 +1201,203 @@
         const [moved] = state.tabs.splice(fi, 1);
         state.tabs.splice(ti, 0, moved);
         state.tabs.forEach(t => { const el = document.getElementById('tab-el-' + t.id); if (el) dom.tabsContainer.appendChild(el); });
+        if (state.activeTabId) ensureTabVisible(state.activeTabId, 'auto');
+        refreshTabSwitcherIfOpen();
     }
-    function updateTabCounter() { dom.tabCounter.textContent = state.tabs.length; }
+    function updateTabCounter() {
+        dom.tabCounter.textContent = state.tabs.length;
+        refreshTabSwitcherIfOpen();
+    }
+
+    function switchRelativeTab(delta) {
+        if (!state.tabs.length) return;
+        const currentIndex = state.tabs.findIndex((tab) => tab.id === state.activeTabId);
+        const startIndex = currentIndex >= 0 ? currentIndex : 0;
+        const nextIndex = (startIndex + delta + state.tabs.length) % state.tabs.length;
+        const nextTab = state.tabs[nextIndex];
+        if (nextTab) switchTab(nextTab.id);
+    }
+
+    function isTabSwitcherVisible() {
+        return !!dom.tabSwitcherPanel && dom.tabSwitcherPanel.style.display !== 'none';
+    }
+
+    function getTabSwitcherUrlLabel(tab) {
+        const raw = String(tab.url || '');
+        if (!raw || /newtab\.html|settings\.html|incognito\.html/i.test(raw)) {
+            return tab.incognito ? (t('menuIncognito') || 'Incognito') : 'OLEWSER';
+        }
+        return raw;
+    }
+
+    function renderTabSwitcherList() {
+        if (!dom.tabSwitcherList) return;
+        dom.tabSwitcherList.innerHTML = '';
+        if (dom.tabSwitcherCount) dom.tabSwitcherCount.textContent = String(state.tabs.length);
+
+        if (!state.tabs.length) {
+            const empty = document.createElement('div');
+            empty.className = 'tab-switcher-empty';
+            empty.textContent = 'No tabs';
+            dom.tabSwitcherList.appendChild(empty);
+            return;
+        }
+
+        state.tabs.forEach((tab) => {
+            const item = document.createElement('div');
+            item.className = 'tab-switcher-item' + (tab.id === state.activeTabId ? ' active' : '');
+            item.dataset.tabId = tab.id;
+
+            if (tab.favicon) {
+                const favicon = document.createElement('img');
+                favicon.className = 'tab-switcher-item-favicon';
+                favicon.src = tab.favicon;
+                favicon.alt = '';
+                favicon.onerror = () => {
+                    favicon.replaceWith(Object.assign(document.createElement('span'), { className: 'tab-switcher-item-fallback' }));
+                };
+                item.appendChild(favicon);
+            } else {
+                const fallback = document.createElement('span');
+                fallback.className = 'tab-switcher-item-fallback';
+                item.appendChild(fallback);
+            }
+
+            const textWrap = document.createElement('div');
+            textWrap.className = 'tab-switcher-item-text';
+
+            const title = document.createElement('div');
+            title.className = 'tab-switcher-item-title';
+            title.textContent = tab.title || t('newTab');
+
+            const url = document.createElement('div');
+            url.className = 'tab-switcher-item-url';
+            url.textContent = getTabSwitcherUrlLabel(tab);
+
+            textWrap.appendChild(title);
+            textWrap.appendChild(url);
+            item.appendChild(textWrap);
+
+            item.addEventListener('click', () => {
+                switchTab(tab.id);
+                hideTabSwitcherPanel();
+            });
+            item.addEventListener('auxclick', (e) => {
+                if (e.button !== 1) return;
+                e.preventDefault();
+                closeTab(tab.id);
+            });
+
+            dom.tabSwitcherList.appendChild(item);
+        });
+    }
+
+    let _tabSwitcherOutsideHandler = null;
+    let _tabSwitcherBlurHandler = null;
+
+    function showTabSwitcherPanel() {
+        if (!dom.tabSwitcherPanel || !dom.tabCounter) return;
+        hideContextMenu();
+        dom.pulsePanel.style.display = 'none';
+        if (dom.downloadsPanel) dom.downloadsPanel.style.display = 'none';
+
+        renderTabSwitcherList();
+        dom.tabSwitcherPanel.style.display = '';
+
+        const anchor = dom.tabCounter.getBoundingClientRect();
+        const bw = document.body.clientWidth;
+        const bh = document.body.clientHeight;
+        const pw = dom.tabSwitcherPanel.offsetWidth || 340;
+        const ph = dom.tabSwitcherPanel.offsetHeight || 360;
+        let left = Math.min(Math.max(8, anchor.left), bw - pw - 8);
+        let top = anchor.bottom + 8;
+        if (top + ph > bh - 8) top = Math.max(8, anchor.top - ph - 8);
+        dom.tabSwitcherPanel.style.left = `${left}px`;
+        dom.tabSwitcherPanel.style.top = `${top}px`;
+
+        if (_tabSwitcherOutsideHandler) {
+            document.removeEventListener('mousedown', _tabSwitcherOutsideHandler, true);
+            document.removeEventListener('click', _tabSwitcherOutsideHandler, true);
+        }
+        _tabSwitcherOutsideHandler = (e) => {
+            if (!isTabSwitcherVisible()) return;
+            if (!dom.tabSwitcherPanel.contains(e.target) && !dom.tabCounter.contains(e.target)) {
+                hideTabSwitcherPanel();
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('mousedown', _tabSwitcherOutsideHandler, true);
+            document.addEventListener('click', _tabSwitcherOutsideHandler, true);
+        }, 0);
+
+        if (_tabSwitcherBlurHandler) window.removeEventListener('blur', _tabSwitcherBlurHandler);
+        _tabSwitcherBlurHandler = () => hideTabSwitcherPanel();
+        window.addEventListener('blur', _tabSwitcherBlurHandler);
+    }
+
+    function hideTabSwitcherPanel() {
+        if (!dom.tabSwitcherPanel) return;
+        dom.tabSwitcherPanel.style.display = 'none';
+        if (_tabSwitcherOutsideHandler) {
+            document.removeEventListener('mousedown', _tabSwitcherOutsideHandler, true);
+            document.removeEventListener('click', _tabSwitcherOutsideHandler, true);
+            _tabSwitcherOutsideHandler = null;
+        }
+        if (_tabSwitcherBlurHandler) {
+            window.removeEventListener('blur', _tabSwitcherBlurHandler);
+            _tabSwitcherBlurHandler = null;
+        }
+    }
+
+    function toggleTabSwitcherPanel() {
+        if (isTabSwitcherVisible()) hideTabSwitcherPanel();
+        else showTabSwitcherPanel();
+    }
+
+    function refreshTabSwitcherIfOpen() {
+        if (!isTabSwitcherVisible()) return;
+        renderTabSwitcherList();
+    }
+
+    function initTabStripDragScroll() {
+        if (!dom.tabStrip) return;
+        let dragging = false;
+        let pointerId = null;
+        let startX = 0;
+        let startScrollLeft = 0;
+
+        const stopDragging = () => {
+            if (!dragging) return;
+            dragging = false;
+            pointerId = null;
+            dom.tabStrip.classList.remove('dragging-scroll');
+        };
+
+        dom.tabStrip.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.tab') || e.target.closest('.btn-new-tab')) return;
+            dragging = true;
+            pointerId = e.pointerId;
+            startX = e.clientX;
+            startScrollLeft = dom.tabStrip.scrollLeft;
+            dom.tabStrip.classList.add('dragging-scroll');
+            if (typeof dom.tabStrip.setPointerCapture === 'function') {
+                try { dom.tabStrip.setPointerCapture(pointerId); } catch (_) { }
+            }
+        });
+
+        dom.tabStrip.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            if (pointerId !== null && e.pointerId !== pointerId) return;
+            const delta = e.clientX - startX;
+            dom.tabStrip.scrollLeft = startScrollLeft - delta;
+        });
+
+        dom.tabStrip.addEventListener('pointerup', stopDragging);
+        dom.tabStrip.addEventListener('pointercancel', stopDragging);
+        dom.tabStrip.addEventListener('lostpointercapture', stopDragging);
+        window.addEventListener('blur', stopDragging);
+    }
 
     // ============================================================
     // WEBVIEW SETUP
@@ -1189,6 +1445,7 @@
                 renderQuickAccess();
             }
             updateNav();
+            refreshTabSwitcherIfOpen();
             if (!t?.incognito && !e.url.includes('newtab.html') && !e.url.includes('incognito.html'))
                 window.olewser.history.add({ url: e.url, title: t?.title, favicon: t?.favicon });
             if (!t?.incognito && !/^about:blank/i.test(e.url || '')) {
@@ -1204,18 +1461,21 @@
                 dom.urlInput.value = e.url;
                 renderQuickAccess();
             }
+            refreshTabSwitcherIfOpen();
         });
 
         wv.addEventListener('page-title-updated', (e) => {
             const t = state.tabs.find(x => x.id === id);
             if (t?.sleeping) return;
             if (t) { t.title = e.title; const el = document.getElementById('tab-title-' + id); if (el) el.textContent = e.title; }
+            refreshTabSwitcherIfOpen();
         });
 
         wv.addEventListener('page-favicon-updated', (e) => {
             const t = state.tabs.find(x => x.id === id);
             if (t?.sleeping) return;
             if (t && e.favicons?.length) { t.favicon = e.favicons[0]; const el = document.getElementById('tab-fav-' + id); if (el) { el.src = e.favicons[0]; el.style.display = ''; } }
+            refreshTabSwitcherIfOpen();
         });
 
         wv.addEventListener('did-fail-load', (e) => {
@@ -1357,6 +1617,7 @@
 
     function serializeTabsForSession() {
         return state.tabs
+            .filter((tab) => !tab.incognito)
             .map((tab) => ({
                 url: tab.url || '',
                 title: tab.title || '',
@@ -1384,7 +1645,7 @@
     }
 
     async function saveAutoSession() {
-        if (!state.settings.restoreSession) return false;
+        if (!state.settings.restoreSession || state.isIncognito) return false;
         const tabs = serializeTabsForSession();
         if (!tabs.length) return false;
         const existing = await window.olewser.sessions.get();
@@ -1788,9 +2049,9 @@
     // ============================================================
     function showDropdownMenu() {
         const items = [
-            { label: t('menuNewTab'), icon: ICONS.newTab, kbd: 'Ctrl+T', action: () => createTab() },
+            { label: t('menuNewTab'), icon: ICONS.newTab, kbd: 'Ctrl+T', action: () => openNewTabFromUser() },
             { label: t('menuNewWindow'), icon: ICONS.window, kbd: 'Ctrl+N', action: () => window.olewser.window.newWindow() },
-            { label: t('menuIncognito'), icon: ICONS.incognito, kbd: 'Ctrl+Shift+N', action: () => createIncognitoTab() },
+            { label: t('menuIncognito'), icon: ICONS.incognito, kbd: 'Ctrl+Shift+N', action: () => window.olewser.window.newIncognito() },
             { separator: true },
             { label: t('menuBookmarks'), icon: ICONS.bookmark, action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('bookmarks'); } },
             { label: t('menuHistory'), icon: ICONS.history, kbd: 'Ctrl+H', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('history'); } },
@@ -1817,7 +2078,7 @@
     function showTabContextMenu(e, tabId) {
         const tab = state.tabs.find(x => x.id === tabId);
         showContextMenu(e.clientX, e.clientY, [
-            { label: t('cmNewTab'), icon: ICONS.newTab, action: () => createTab() },
+            { label: t('cmNewTab'), icon: ICONS.newTab, action: () => openNewTabFromUser() },
             { label: t('cmDuplicate'), icon: ICONS.duplicate, action: () => duplicateTab(tabId) },
             { separator: true },
             { label: tab?.pinned ? t('unpin') : t('cmPin'), icon: ICONS.pin, action: () => pinTab(tabId) },
@@ -1841,8 +2102,8 @@
 
     function renderCommands(query) {
         const cmds = [
-            { title: t('menuNewTab'), kbd: 'Ctrl+T', action: () => createTab() },
-            { title: t('menuIncognito'), kbd: 'Ctrl+Shift+N', action: () => createIncognitoTab() },
+            { title: t('menuNewTab'), kbd: 'Ctrl+T', action: () => openNewTabFromUser() },
+            { title: t('menuIncognito'), kbd: 'Ctrl+Shift+N', action: () => window.olewser.window.newIncognito() },
             { title: t('menuSettings'), action: () => createTab(settingsUrl(), { title: t('menuSettings') }) },
             { title: t('menuHistory'), kbd: 'Ctrl+H', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('history'); } },
             { title: t('menuDownloads'), kbd: 'Ctrl+J', action: () => { state.sidebarOpen = true; dom.sidebar.style.display = ''; renderSidebarPanel('downloads'); } },
@@ -1896,6 +2157,7 @@
     let _outsideClickHandler = null;
     let _blurHandler = null;
     function showContextMenu(x, y, items) {
+        hideTabSwitcherPanel();
         hideContextMenu(); // close any existing first
         dom.contextMenu.innerHTML = '';
         items.forEach(item => {
@@ -2127,6 +2389,41 @@
     // ============================================================
     // PULSE
     // ============================================================
+    function isAggressiveAdblockEnabled() {
+        return state.settings.adblockAggressive !== false;
+    }
+
+    function syncPulseAdblockControls() {
+        const aggressive = isAggressiveAdblockEnabled();
+        if (dom.pulseAdblockToggle) dom.pulseAdblockToggle.checked = aggressive;
+        if (dom.pulseAdblockMode) dom.pulseAdblockMode.textContent = aggressive ? 'Aggressive' : 'Balanced';
+    }
+
+    async function setPulseAdblockMode(enabled) {
+        const aggressive = !!enabled;
+        const prev = isAggressiveAdblockEnabled();
+        if (prev === aggressive) {
+            syncPulseAdblockControls();
+            return;
+        }
+
+        const nextSettings = { ...(state.settings || {}), adblockAggressive: aggressive };
+        state.settings = nextSettings;
+        syncPulseAdblockControls();
+        if (dom.pulseAdblockToggle) dom.pulseAdblockToggle.disabled = true;
+        try {
+            await window.olewser.settings.save(nextSettings);
+            await updatePulse();
+            toast(aggressive ? 'Aggressive adblock enabled' : 'Balanced adblock enabled', 'success');
+        } catch (err) {
+            state.settings = { ...(state.settings || {}), adblockAggressive: prev };
+            syncPulseAdblockControls();
+            toast(`Failed to switch adblock mode: ${err && err.message ? err.message : err}`, 'error');
+        } finally {
+            if (dom.pulseAdblockToggle) dom.pulseAdblockToggle.disabled = false;
+        }
+    }
+
     async function updatePulse() {
         const s = await window.olewser.pulse.getStats();
         $('#pulse-ads').textContent = s.adsBlocked;
@@ -2134,6 +2431,10 @@
         $('#pulse-data').textContent = formatBytes(s.dataSavedKB * 1024);
         $('#pulse-time').textContent = formatTime(Date.now() - s.sessionStart);
         $('#pulse-frost-count').textContent = state.frozenTabs.size;
+        if (typeof s.adblockAggressive === 'boolean') {
+            state.settings.adblockAggressive = s.adblockAggressive;
+        }
+        syncPulseAdblockControls();
     }
 
     // ============================================================
@@ -2183,6 +2484,7 @@
         }
         // Language
         applyLanguage();
+        syncPulseAdblockControls();
     }
 
     // Listen for settings changes from settings page (via IPC)
@@ -2207,10 +2509,10 @@
     // KEYBOARD SHORTCUTS
     // ============================================================
     function handleShortcut(key, ctrl, shift) {
-        if (ctrl && (key === 't' || key === 'T') && !shift) { createTab(); return true; }
+        if (ctrl && (key === 't' || key === 'T') && !shift) { openNewTabFromUser(); return true; }
         if (ctrl && (key === 'w' || key === 'W') && !shift) { closeTab(state.activeTabId); return true; }
         if (ctrl && !shift && (key === 'n' || key === 'N')) { window.olewser.window.newWindow(); return true; }
-        if (ctrl && shift && (key === 'n' || key === 'N')) { createIncognitoTab(); return true; }
+        if (ctrl && shift && (key === 'n' || key === 'N')) { window.olewser.window.newIncognito(); return true; }
         if (ctrl && shift && (key === 't' || key === 'T')) { restoreClosedTab(); return true; }
         if (ctrl && (key === 'k' || key === 'K') && !shift) { toggleCommandPalette(); return true; }
         if (ctrl && (key === 'f' || key === 'F') && !shift) { toggleFindBar(); return true; }
@@ -2233,6 +2535,10 @@
         if (key === 'F5') { document.getElementById('wv-' + state.activeTabId)?.reload(); return true; }
         if (key === 'F11') { window.olewser.window.fullscreen(); return true; }
         if (key === 'F12') { openDevTools(); return true; }
+        if (ctrl && key === 'Tab') {
+            switchRelativeTab(shift ? -1 : 1);
+            return true;
+        }
         if (ctrl && key >= '1' && key <= '9') {
             const idx = parseInt(key) - 1;
             if (state.tabs[idx]) switchTab(state.tabs[idx].id);
@@ -2246,6 +2552,7 @@
         if (handleShortcut(e.key, ctrl, shift)) { e.preventDefault(); }
         if (e.key === 'Escape') {
             hideContextMenu();
+            hideTabSwitcherPanel();
             if (dom.commandPalette.style.display !== 'none') toggleCommandPalette();
             if (dom.findBar.style.display !== 'none') toggleFindBar();
         }
@@ -2284,11 +2591,31 @@
         dom.btnBack.addEventListener('click', () => document.getElementById('wv-' + state.activeTabId)?.goBack());
         dom.btnForward.addEventListener('click', () => document.getElementById('wv-' + state.activeTabId)?.goForward());
         dom.btnReload.addEventListener('click', () => document.getElementById('wv-' + state.activeTabId)?.reload());
-        dom.btnHome.addEventListener('click', () => { const wv = document.getElementById('wv-' + state.activeTabId); if (wv) wv.src = newtabUrl(); });
+        dom.btnHome.addEventListener('click', () => {
+            const wv = document.getElementById('wv-' + state.activeTabId);
+            if (wv) wv.src = state.isIncognito ? incognitoUrl() : newtabUrl();
+        });
 
-        dom.btnNewTab.addEventListener('click', () => createTab());
-        dom.tabStrip.addEventListener('dblclick', (e) => { if (!e.target.closest('.tab') && !e.target.closest('.btn-new-tab')) createTab(); });
+        dom.btnNewTab.addEventListener('click', () => openNewTabFromUser());
+        dom.tabStrip.addEventListener('dblclick', (e) => { if (!e.target.closest('.tab') && !e.target.closest('.btn-new-tab')) openNewTabFromUser(); });
         dom.tabStrip.addEventListener('wheel', (e) => { e.preventDefault(); dom.tabStrip.scrollLeft += e.deltaY; }, { passive: false });
+        initTabStripDragScroll();
+        dom.tabCounter.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleTabSwitcherPanel();
+        });
+        dom.tabCounter.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showTabSwitcherPanel();
+        });
+        dom.tabCounter.addEventListener('wheel', (e) => {
+            if (!state.tabs.length) return;
+            e.preventDefault();
+            const direction = (e.deltaY || 0) > 0 ? 1 : -1;
+            switchRelativeTab(direction);
+            showTabSwitcherPanel();
+        }, { passive: false });
 
         dom.urlInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { navigate(dom.urlInput.value); dom.urlAutocomplete.style.display = 'none'; }
@@ -2332,8 +2659,17 @@
         dom.zoomReset.addEventListener('click', resetZoom);
 
         // Feature buttons
-        dom.btnPulse.addEventListener('click', () => { dom.pulsePanel.style.display = dom.pulsePanel.style.display === 'none' ? '' : 'none'; updatePulse(); });
+        dom.btnPulse.addEventListener('click', () => {
+            hideTabSwitcherPanel();
+            dom.pulsePanel.style.display = dom.pulsePanel.style.display === 'none' ? '' : 'none';
+            updatePulse();
+        });
         dom.pulseClose.addEventListener('click', () => { dom.pulsePanel.style.display = 'none'; });
+        if (dom.pulseAdblockToggle) {
+            dom.pulseAdblockToggle.addEventListener('change', (e) => {
+                setPulseAdblockMode(!!e.target.checked);
+            });
+        }
 
         initAIAgent();
         dom.btnScreenshot.addEventListener('click', takeScreenshot);
@@ -2342,6 +2678,7 @@
         // Downloads button
         dom.btnDownloads.addEventListener('click', (e) => {
             e.stopPropagation();
+            hideTabSwitcherPanel();
             const panel = dom.downloadsPanel;
             if (panel.style.display !== 'none') {
                 panel.style.display = 'none';
@@ -2385,6 +2722,9 @@
             if (dom.downloadsPanel.style.display !== 'none' && !dom.downloadsPanel.contains(e.target) && !dom.btnDownloads.contains(e.target)) {
                 dom.downloadsPanel.style.display = 'none';
             }
+            if (isTabSwitcherVisible() && !dom.tabSwitcherPanel.contains(e.target) && !dom.tabCounter.contains(e.target)) {
+                hideTabSwitcherPanel();
+            }
         });
 
         // Ripple
@@ -2416,6 +2756,11 @@
             dom.shell.classList.toggle('fullscreen', fs);
             if (!fs) dom.shell.classList.remove('fs-hidden'); // reset on exit fullscreen
         });
+        window.olewser.on.incognito((enabled) => {
+            if (!enabled) return;
+            state.isIncognito = true;
+            syncWindowIncognitoUi();
+        });
 
         // Fullscreen menu toggle button
         const fsToggle = document.getElementById('btn-fs-toggle');
@@ -2426,7 +2771,7 @@
                 ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'
                 : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
         });
-        window.olewser.on.openUrl((url) => createTab(url));
+        window.olewser.on.openUrl((url) => openNewTabFromUser(url));
         window.olewser.on.toast((data) => toast(data.message, data.type));
         window.olewser.on.translateSelection((text) => {
             const value = String(text || '').trim();
@@ -2512,9 +2857,11 @@
         let dragging = false;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
+        let activePointerId = null;
 
         const onPointerMove = (e) => {
             if (!dragging) return;
+            if (activePointerId !== null && e.pointerId !== activePointerId) return;
             const rect = panel.getBoundingClientRect();
             const maxLeft = Math.max(8, window.innerWidth - rect.width - 8);
             const maxTop = Math.max(8, window.innerHeight - rect.height - 8);
@@ -2533,14 +2880,24 @@
             document.removeEventListener('pointermove', onPointerMove);
             document.removeEventListener('pointerup', stopDragging);
             document.removeEventListener('pointercancel', stopDragging);
+            window.removeEventListener('blur', stopDragging);
+            if (activePointerId !== null && typeof header.hasPointerCapture === 'function' && header.hasPointerCapture(activePointerId)) {
+                try {
+                    header.releasePointerCapture(activePointerId);
+                } catch (_) { }
+            }
+            activePointerId = null;
         };
 
+        header.addEventListener('lostpointercapture', stopDragging);
         header.addEventListener('pointerdown', (e) => {
+            if (!panel.classList.contains('open')) return;
             if (e.button !== 0) return;
             if (e.target.closest('#oleksandrai-panel-close')) return;
 
             const rect = panel.getBoundingClientRect();
             dragging = true;
+            activePointerId = e.pointerId;
             dragOffsetX = e.clientX - rect.left;
             dragOffsetY = e.clientY - rect.top;
             panel.classList.add('dragging');
@@ -2549,11 +2906,19 @@
             panel.style.right = 'auto';
             panel.style.bottom = 'auto';
 
+            if (typeof header.setPointerCapture === 'function') {
+                try {
+                    header.setPointerCapture(activePointerId);
+                } catch (_) { }
+            }
+            e.preventDefault();
             document.addEventListener('pointermove', onPointerMove);
             document.addEventListener('pointerup', stopDragging);
             document.addEventListener('pointercancel', stopDragging);
+            window.addEventListener('blur', stopDragging);
         });
 
+        panel.__stopOleksandraiPanelDrag = stopDragging;
         window.addEventListener('resize', () => {
             if (!panel.classList.contains('open')) return;
             if (!panel.style.left) return;
@@ -2572,6 +2937,7 @@
             closeOleksandraiPanel();
             return;
         }
+        hideTabSwitcherPanel();
         dom.pulsePanel.style.display = 'none';
         hideContextMenu();
         dom.oleksandraiPanel.classList.add('open');
@@ -2580,8 +2946,17 @@
 
     function closeOleksandraiPanel() {
         if (!dom.oleksandraiPanel) return;
+        if (typeof dom.oleksandraiPanel.__stopOleksandraiPanelDrag === 'function') {
+            dom.oleksandraiPanel.__stopOleksandraiPanelDrag();
+        }
+        const activeEl = document.activeElement;
+        const hadPanelFocus = activeEl === dom.oleksandraiFrame || (activeEl && dom.oleksandraiPanel.contains(activeEl));
         dom.oleksandraiPanel.classList.remove('open');
         dom.btnAi.classList.remove('active');
+        if (hadPanelFocus && dom.urlInput) {
+            dom.urlInput.focus();
+            dom.urlInput.select();
+        }
     }
 
     function pushDebugLog(text, color = '#00ff00') {
@@ -3184,6 +3559,7 @@ Browser-action rules:
     // ============================================================
     async function init() {
         state.settings = await window.olewser.settings.load();
+        syncWindowIncognitoUi();
         await detectRuntimePlatform();
         loadAutomationRules();
         try { _preloadPath = await window.olewser.app.getPreloadPath(); } catch (e) { }
@@ -3194,13 +3570,13 @@ Browser-action rules:
         await initAppUpdateBanner();
         await initIntro();
         let restored = false;
-        if (state.settings.restoreSession) {
+        if (!state.isIncognito && state.settings.restoreSession) {
             try {
                 restored = await restoreLastSavedSession({ silent: true });
             } catch (_) { }
         }
         if (!restored) {
-            createTab();
+            createTab('', { _force: true, incognito: state.isIncognito });
         }
         setInterval(() => {
             saveAutoSession().catch(() => { });
@@ -3366,17 +3742,7 @@ Browser-action rules:
 
     document.addEventListener('mauzer:openTab', (e) => {
         const url = e.detail && e.detail.url;
-        const newTabBtn = document.getElementById('btn-new-tab');
-        if (newTabBtn) {
-            newTabBtn.click();
-            setTimeout(() => {
-                const urlInput = document.getElementById('url-input');
-                if (urlInput && url) {
-                    urlInput.value = url;
-                    urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, keyCode: 13 }));
-                }
-            }, 250);
-        }
+        openNewTabFromUser(url || '');
     });
 
     console.log('[MAUZER] Browser control bridge initialized');

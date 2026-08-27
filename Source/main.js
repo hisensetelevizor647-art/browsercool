@@ -342,7 +342,9 @@ app.on('ready', async () => {
   // ============================================================
   // SETTINGS
   // ============================================================
-  const DEFAULT_UPDATE_MANIFEST_URL = process.env.OLEWSER_UPDATE_MANIFEST_URL || 'https://siteolewer.netlify.app/app-update.json';
+  const PRIMARY_UPDATE_MANIFEST_URL = process.env.OLEWSER_UPDATE_MANIFEST_URL || 'https://siteolewser.netlify.app/app-update.json';
+  const LEGACY_UPDATE_MANIFEST_URL = 'https://siteolewer.netlify.app/app-update.json';
+  const DEFAULT_UPDATE_MANIFEST_URL = PRIMARY_UPDATE_MANIFEST_URL;
 
   const DEFAULT_SETTINGS = {
     language: 'sk',
@@ -365,6 +367,7 @@ app.on('ready', async () => {
     clearOnExit: false,
     trackingProtection: 'basic',
     popupBlocking: true,
+    adblockAggressive: true,
     tabCountWarning: 50,
     lowRamMode: false,
     frostEnabled: true,
@@ -385,19 +388,30 @@ app.on('ready', async () => {
   function loadSettings() {
     const merged = { ...DEFAULT_SETTINGS, ...readJSON('settings.json', {}) };
     merged.language = normalizeLanguageCode(merged.language);
+    merged.adblockAggressive = merged.adblockAggressive !== false;
     return merged;
   }
 
   function saveSettings(data) {
     const normalized = { ...data };
     normalized.language = normalizeLanguageCode(normalized.language);
+    normalized.adblockAggressive = normalized.adblockAggressive !== false;
     writeJSON('settings.json', normalized);
+  }
+
+  let adblockAggressiveEnabled = loadSettings().adblockAggressive !== false;
+  function updateAdblockModeFromSettings(settingsLike) {
+    adblockAggressiveEnabled = !(settingsLike && settingsLike.adblockAggressive === false);
+  }
+  function isAdblockAggressiveEnabled() {
+    return !!adblockAggressiveEnabled;
   }
 
   // ============================================================
   // APP UPDATE SERVICE
   // ============================================================
   const APP_UPDATE_CACHE_FILE = 'app-update-state.json';
+  const CUSTOM_EXTENSIONS_FILE = 'custom-extensions.json';
   const UPDATE_STATUS = {
     IDLE: 'idle',
     CHECKING: 'checking',
@@ -453,10 +467,301 @@ app.on('ready', async () => {
     return 0;
   }
 
-  function getUpdateManifestUrl() {
+  function normalizePathForCompare(rawPath) {
+    try {
+      return path.resolve(String(rawPath || '')).replace(/\//g, '\\').toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function normalizeCustomExtensionEntry(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const sourcePath = String(entry.sourcePath || entry.path || '').trim();
+    if (!sourcePath) return null;
+    return {
+      id: String(entry.id || '').trim(),
+      name: String(entry.name || '').trim(),
+      version: String(entry.version || '').trim(),
+      sourcePath,
+      enabled: entry.enabled !== false,
+      addedAt: Number(entry.addedAt || Date.now()),
+      error: String(entry.error || '').trim(),
+    };
+  }
+
+  function getStoredCustomExtensions() {
+    const raw = readJSON(CUSTOM_EXTENSIONS_FILE, []);
+    if (!Array.isArray(raw)) return [];
+    const output = [];
+    const seen = new Set();
+    for (const item of raw) {
+      const normalized = normalizeCustomExtensionEntry(item);
+      if (!normalized) continue;
+      const key = `${normalized.id}::${normalizePathForCompare(normalized.sourcePath)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      output.push(normalized);
+    }
+    return output;
+  }
+
+  function saveStoredCustomExtensions(entries) {
+    const normalized = Array.isArray(entries)
+      ? entries.map(normalizeCustomExtensionEntry).filter(Boolean)
+      : [];
+    writeJSON(CUSTOM_EXTENSIONS_FILE, normalized);
+  }
+
+  function resolveCustomExtensionDirectory(rawPath) {
+    const basePath = path.resolve(String(rawPath || '').trim());
+    if (!basePath || !fs.existsSync(basePath)) {
+      throw new Error('Extension folder does not exist');
+    }
+    const stat = fs.statSync(basePath);
+    if (!stat.isDirectory()) {
+      throw new Error('Extension path must be a folder');
+    }
+
+    const manifestPath = path.join(basePath, 'manifest.json');
+    if (fs.existsSync(manifestPath)) return basePath;
+
+    const candidates = fs.readdirSync(basePath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(basePath, entry.name))
+      .filter((entryPath) => fs.existsSync(path.join(entryPath, 'manifest.json')));
+
+    if (!candidates.length) {
+      throw new Error('manifest.json not found in selected folder');
+    }
+
+    candidates.sort((a, b) => {
+      const versionA = path.basename(a);
+      const versionB = path.basename(b);
+      const cmp = compareSemver(versionA, versionB);
+      if (cmp !== 0) return -cmp;
+      return versionB.localeCompare(versionA);
+    });
+
+    return candidates[0];
+  }
+
+  function getLoadedExtensionByPath(extensionPath) {
+    const targetPath = normalizePathForCompare(extensionPath);
+    if (!targetPath) return null;
+    const loaded = session.defaultSession.getAllExtensions();
+    return loaded.find((ext) => normalizePathForCompare(ext.path) === targetPath) || null;
+  }
+
+  function buildCustomExtensionPublicEntry(entry) {
+    const normalized = normalizeCustomExtensionEntry(entry);
+    if (!normalized) return null;
+
+    const byId = normalized.id ? session.defaultSession.getExtension(normalized.id) : null;
+    const byPath = getLoadedExtensionByPath(normalized.sourcePath);
+    const loadedExt = byId || byPath;
+    const existsOnDisk = fs.existsSync(normalized.sourcePath);
+
+    return {
+      id: loadedExt?.id || normalized.id || '',
+      name: loadedExt?.name || normalized.name || path.basename(normalized.sourcePath),
+      version: loadedExt?.version || normalized.version || '',
+      sourcePath: normalized.sourcePath,
+      enabled: normalized.enabled !== false,
+      loaded: !!loadedExt,
+      existsOnDisk,
+      error: normalized.error || '',
+      addedAt: normalized.addedAt,
+    };
+  }
+
+  function getCustomExtensionsState() {
+    return getStoredCustomExtensions()
+      .map((entry) => buildCustomExtensionPublicEntry(entry))
+      .filter(Boolean);
+  }
+
+  async function loadCustomExtension(entry) {
+    const sourcePath = resolveCustomExtensionDirectory(entry.sourcePath);
+    const alreadyLoaded = getLoadedExtensionByPath(sourcePath);
+    if (alreadyLoaded) return alreadyLoaded;
+    try {
+      return await session.defaultSession.loadExtension(sourcePath, { allowFileAccess: true });
+    } catch (err) {
+      const byPath = getLoadedExtensionByPath(sourcePath);
+      if (byPath) return byPath;
+      if (entry.id) {
+        const byId = session.defaultSession.getExtension(entry.id);
+        if (byId) return byId;
+      }
+      throw err;
+    }
+  }
+
+  async function bootstrapCustomExtensions() {
+    const current = getStoredCustomExtensions();
+    if (!current.length) return [];
+
+    const next = [];
+    let changed = false;
+    for (const entry of current) {
+      const updated = { ...entry };
+      if (!updated.enabled) {
+        next.push(updated);
+        continue;
+      }
+      try {
+        const ext = await loadCustomExtension(updated);
+        updated.id = String(ext.id || updated.id || '');
+        updated.name = String(ext.name || updated.name || '');
+        updated.version = String(ext.version || updated.version || '');
+        updated.sourcePath = resolveCustomExtensionDirectory(updated.sourcePath);
+        updated.error = '';
+      } catch (err) {
+        updated.error = err && err.message ? err.message : 'Failed to load extension';
+      }
+
+      if (
+        updated.id !== entry.id ||
+        updated.name !== entry.name ||
+        updated.version !== entry.version ||
+        updated.sourcePath !== entry.sourcePath ||
+        updated.error !== entry.error
+      ) {
+        changed = true;
+      }
+      next.push(updated);
+    }
+
+    if (changed) saveStoredCustomExtensions(next);
+    return getCustomExtensionsState();
+  }
+
+  async function addCustomExtensionFromPath(rawPath) {
+    const resolvedSourcePath = resolveCustomExtensionDirectory(rawPath);
+    const ext = await loadCustomExtension({ sourcePath: resolvedSourcePath });
+
+    let entries = getStoredCustomExtensions();
+    const normalizedPath = normalizePathForCompare(resolvedSourcePath);
+    entries = entries.filter((item) => {
+      if (normalizePathForCompare(item.sourcePath) === normalizedPath) return false;
+      if (item.id && ext.id && item.id === ext.id) return false;
+      return true;
+    });
+
+    entries.push({
+      id: String(ext.id || ''),
+      name: String(ext.name || path.basename(resolvedSourcePath)),
+      version: String(ext.version || ''),
+      sourcePath: resolvedSourcePath,
+      enabled: true,
+      addedAt: Date.now(),
+      error: '',
+    });
+    saveStoredCustomExtensions(entries);
+
+    const extension = buildCustomExtensionPublicEntry(entries[entries.length - 1]);
+    return {
+      ok: true,
+      extension,
+      extensions: getCustomExtensionsState(),
+    };
+  }
+
+  async function addCustomExtensionFromDialog() {
+    const parentWindow = BrowserWindow.getFocusedWindow() || mainWindow || undefined;
+    const selected = await dialog.showOpenDialog(parentWindow, {
+      title: 'Select extension folder',
+      buttonLabel: 'Add Extension',
+      properties: ['openDirectory'],
+    });
+    if (selected.canceled || !selected.filePaths.length) {
+      return { ok: false, canceled: true };
+    }
+
+    try {
+      return await addCustomExtensionFromPath(selected.filePaths[0]);
+    } catch (err) {
+      return {
+        ok: false,
+        error: err && err.message ? err.message : 'Failed to add extension',
+      };
+    }
+  }
+
+  function removeCustomExtensionById(extensionId) {
+    const key = String(extensionId || '').trim();
+    if (!key) return { ok: false, error: 'Extension id is required' };
+
+    const normalizedKeyPath = normalizePathForCompare(key);
+    const current = getStoredCustomExtensions();
+    const removedEntry = current.find((entry) => (
+      entry.id === key || normalizePathForCompare(entry.sourcePath) === normalizedKeyPath
+    ));
+    const next = current.filter((entry) => !(
+      entry.id === key || normalizePathForCompare(entry.sourcePath) === normalizedKeyPath
+    ));
+    if (next.length === current.length) {
+      return { ok: false, error: 'Extension not found' };
+    }
+
+    const removableId = removedEntry && removedEntry.id ? removedEntry.id : key;
+    try {
+      if (session.defaultSession.getExtension(removableId)) {
+        session.defaultSession.removeExtension(removableId);
+      }
+    } catch (_) {
+      // Ignore unload errors and continue removing from config.
+    }
+
+    saveStoredCustomExtensions(next);
+    return { ok: true, extensions: getCustomExtensionsState() };
+  }
+
+  function showCustomExtensionInFolder(extensionId) {
+    const id = String(extensionId || '').trim();
+    if (!id) return { ok: false, error: 'Extension id is required' };
+    const normalizedKeyPath = normalizePathForCompare(id);
+    const current = getStoredCustomExtensions();
+    const entry = current.find((item) => (
+      item.id === id || normalizePathForCompare(item.sourcePath) === normalizedKeyPath
+    ));
+    if (!entry) return { ok: false, error: 'Extension not found' };
+    if (!fs.existsSync(entry.sourcePath)) {
+      return { ok: false, error: 'Extension folder is missing' };
+    }
+
+    const manifestPath = path.join(entry.sourcePath, 'manifest.json');
+    shell.showItemInFolder(manifestPath);
+    return { ok: true, path: entry.sourcePath };
+  }
+
+  function pushUniqueManifestUrl(list, value) {
+    const next = String(value || '').trim();
+    if (!next) return;
+    if (!list.includes(next)) list.push(next);
+  }
+
+  function getUpdateManifestUrls() {
     const settings = loadSettings();
     const fromSettings = String(settings.updateManifestUrl || '').trim();
-    return fromSettings || DEFAULT_UPDATE_MANIFEST_URL;
+    const urls = [];
+
+    if (fromSettings && fromSettings === LEGACY_UPDATE_MANIFEST_URL) {
+      pushUniqueManifestUrl(urls, PRIMARY_UPDATE_MANIFEST_URL);
+      pushUniqueManifestUrl(urls, LEGACY_UPDATE_MANIFEST_URL);
+    } else {
+      pushUniqueManifestUrl(urls, fromSettings);
+      pushUniqueManifestUrl(urls, PRIMARY_UPDATE_MANIFEST_URL);
+      pushUniqueManifestUrl(urls, LEGACY_UPDATE_MANIFEST_URL);
+    }
+
+    if (!urls.length) urls.push(DEFAULT_UPDATE_MANIFEST_URL);
+    return urls;
+  }
+
+  function getUpdateManifestUrl() {
+    return getUpdateManifestUrls()[0];
   }
 
   function buildPublicUpdateState() {
@@ -586,7 +891,11 @@ app.on('ready', async () => {
         addCandidate(downloads.win32);
         addCandidate(downloads.win);
         addCandidate(downloads.windows);
+        addCandidate(downloads.updateSetup);
+        addCandidate(downloads.updateSetupUrl);
         if (downloads.windows && typeof downloads.windows === 'object') {
+          addCandidate(downloads.windows.updateSetup);
+          addCandidate(downloads.windows.updateSetupUrl);
           addCandidate(downloads.windows[arch]);
           addCandidate(downloads.windows.url);
           addCandidate(downloads.windows.default);
@@ -601,9 +910,13 @@ app.on('ready', async () => {
       if (manifest.windows && typeof manifest.windows === 'string') {
         addCandidate(manifest.windows);
       } else if (manifest.windows && typeof manifest.windows === 'object') {
+        addCandidate(manifest.windows.updateSetup);
+        addCandidate(manifest.windows.updateSetupUrl);
         addCandidate(manifest.windows[arch]);
         addCandidate(manifest.windows.url);
       }
+      addCandidate(manifest.updateSetup);
+      addCandidate(manifest.updateSetupUrl);
       addCandidate(manifest.exe);
     }
 
@@ -631,7 +944,8 @@ app.on('ready', async () => {
     }
 
     const run = (async () => {
-      const manifestUrl = getUpdateManifestUrl();
+      const manifestUrls = getUpdateManifestUrls();
+      const manifestUrl = manifestUrls[0] || DEFAULT_UPDATE_MANIFEST_URL;
       patchAppUpdateState({
         status: UPDATE_STATUS.CHECKING,
         manifestUrl,
@@ -639,13 +953,35 @@ app.on('ready', async () => {
       });
 
       try {
-        const manifest = await fetchJsonWithRedirects(manifestUrl);
+        let manifest = null;
+        let resolvedManifestUrl = manifestUrl;
+        let manifestFetchError = null;
+        for (const candidateManifestUrl of manifestUrls) {
+          try {
+            manifest = await fetchJsonWithRedirects(candidateManifestUrl);
+            resolvedManifestUrl = candidateManifestUrl;
+            break;
+          } catch (err) {
+            manifestFetchError = err;
+          }
+        }
+        if (!manifest) {
+          throw manifestFetchError || new Error('Failed to fetch update manifest');
+        }
+
+        if (resolvedManifestUrl !== manifestUrl) {
+          const settings = loadSettings();
+          if (String(settings.updateManifestUrl || '').trim() === LEGACY_UPDATE_MANIFEST_URL) {
+            saveSettings({ ...settings, updateManifestUrl: PRIMARY_UPDATE_MANIFEST_URL });
+          }
+        }
+
         const latestVersion = sanitizeVersion(manifest.version || manifest.latestVersion || manifest.appVersion);
         if (!latestVersion) {
           throw new Error('Update manifest does not contain a valid version');
         }
 
-        const downloadUrl = resolveDownloadUrl(manifest, manifestUrl);
+        const downloadUrl = resolveDownloadUrl(manifest, resolvedManifestUrl);
         if (process.platform === 'win32' && downloadUrl && !isUpdatePackageAllowedForPlatform(downloadUrl, 'win32')) {
           throw new Error('Manifest provided non-Windows package for Windows updater');
         }
@@ -671,6 +1007,7 @@ app.on('ready', async () => {
             status: hasCachedDownload ? UPDATE_STATUS.READY : UPDATE_STATUS.AVAILABLE,
             latestVersion,
             downloadUrl,
+            manifestUrl: resolvedManifestUrl,
             notes,
             mandatory,
             autoDownload,
@@ -681,6 +1018,7 @@ app.on('ready', async () => {
             status: UPDATE_STATUS.UP_TO_DATE,
             latestVersion,
             downloadUrl,
+            manifestUrl: resolvedManifestUrl,
             notes,
             mandatory: false,
             autoDownload,
@@ -713,6 +1051,10 @@ app.on('ready', async () => {
   function getUpdateDestinationPath(version, downloadUrl) {
     const updatesDir = path.join(app.getPath('userData'), 'updates');
     if (!fs.existsSync(updatesDir)) fs.mkdirSync(updatesDir, { recursive: true });
+
+    if (process.platform === 'win32') {
+      return path.join(updatesDir, 'updatesetup.exe');
+    }
 
     let ext = '';
     try {
@@ -876,7 +1218,7 @@ app.on('ready', async () => {
       return { ok: false, error: 'Update is not ready to install' };
     }
 
-    const installerPath = String(appUpdateState.downloadedFilePath || '').trim();
+    let installerPath = String(appUpdateState.downloadedFilePath || '').trim();
     if (!installerPath || !fs.existsSync(installerPath)) {
       patchAppUpdateState({
         status: UPDATE_STATUS.AVAILABLE,
@@ -886,6 +1228,25 @@ app.on('ready', async () => {
       });
       saveAppUpdateCache();
       return { ok: false, error: 'Installer file not found' };
+    }
+
+    if (process.platform === 'win32') {
+      const updaterPath = path.join(path.dirname(installerPath), 'updatesetup.exe');
+      if (path.basename(installerPath).toLowerCase() !== 'updatesetup.exe') {
+        try {
+          fs.copyFileSync(installerPath, updaterPath);
+          installerPath = updaterPath;
+          patchAppUpdateState({ downloadedFilePath: installerPath });
+          saveAppUpdateCache();
+        } catch (err) {
+          const message = err && err.message ? err.message : 'Failed to prepare updatesetup.exe';
+          patchAppUpdateState({
+            status: UPDATE_STATUS.ERROR,
+            error: message,
+          });
+          return { ok: false, error: message };
+        }
+      }
     }
 
     patchAppUpdateState({
@@ -1404,7 +1765,7 @@ app.on('ready', async () => {
         }
 
         // Strong third-party ad/tracker heuristics
-        if (shouldBlockByHeuristic(details, url)) {
+        if (isAdblockAggressiveEnabled() && shouldBlockByHeuristic(details, url)) {
           notifyAdBlock(url.hostname);
           callback({ cancel: true });
           return;
@@ -1622,6 +1983,7 @@ app.on('ready', async () => {
 
           // Only run anti-detect on external sites
           wc.executeJavaScript(antiDetectJS).catch(() => { });
+          const aggressiveAdblock = isAdblockAggressiveEnabled();
 
           // Hide Yandex browser promo/pack banners
           if (url.includes('yandex.')) {
@@ -1698,7 +2060,7 @@ app.on('ready', async () => {
           `).catch(() => { });
           }
           // Aggressive ad cleanup for cinema-streaming sites where ads are usually same-site.
-          if (/(\.|\/\/)(rezka|hdrezka|kinogo|kinokrad|lordfilm|gidonline|filmix)\./i.test(url) || /rezka\.ag/i.test(url)) {
+          if (aggressiveAdblock && (/(\.|\/\/)(rezka|hdrezka|kinogo|kinokrad|lordfilm|gidonline|filmix)\./i.test(url) || /rezka\.ag/i.test(url))) {
             wc.insertCSS(`
               .b-content__inline_item,
               .b-content__right,
@@ -1877,8 +2239,9 @@ app.on('ready', async () => {
             `).catch(() => { });
           }
 
-          // Global ad placeholders cleanup on most websites
-          wc.insertCSS(`
+          // Global ad placeholders cleanup on most websites (aggressive mode)
+          if (aggressiveAdblock) {
+            wc.insertCSS(`
             .adsbygoogle,
             [id^="google_ads_iframe"],
             [id*="google_ads_iframe"],
@@ -1915,9 +2278,9 @@ app.on('ready', async () => {
               display: none !important;
               visibility: hidden !important;
             }
-          `).catch(() => { });
+            `).catch(() => { });
 
-          wc.executeJavaScript(`
+            wc.executeJavaScript(`
             (function() {
               if (window.__olewserGlobalAdCleaner) return;
               window.__olewserGlobalAdCleaner = true;
@@ -1937,7 +2300,8 @@ app.on('ready', async () => {
               const timer = setInterval(scan, 1500);
               window.addEventListener('beforeunload', () => clearInterval(timer));
             })();
-          `).catch(() => { });
+            `).catch(() => { });
+          }
         }
 
         // Native dark mode signal - User wants websites to always be dark
@@ -2192,20 +2556,25 @@ app.on('ready', async () => {
     }
 
     const shouldOpenMainUi = pendingLaunchTargets.length > 0;
-    if (isFirstRun() && !shouldOpenMainUi) {
+    if (!isIncognito && isFirstRun() && !shouldOpenMainUi) {
       win.loadFile(path.join(__dirname, 'src', 'start.html'));
     } else {
-      win.loadFile(path.join(__dirname, 'src', 'index.html'));
+      win.loadFile(path.join(__dirname, 'src', 'index.html'), {
+        query: { incognito: isIncognito ? '1' : '0' }
+      });
     }
+
+    win.webContents.once('did-finish-load', () => {
+      if (isIncognito && !win.isDestroyed()) {
+        win.webContents.send('set-incognito', true);
+      }
+    });
 
     win.once('ready-to-show', () => {
       win.show();
       win.webContents.send('app-update:state', buildPublicUpdateState());
       // DevTools disabled by default as per request
       // win.webContents.openDevTools({ mode: 'detach' }); 
-      if (isIncognito) {
-        win.webContents.send('set-incognito', true);
-      }
       if (win === mainWindow) {
         flushPendingLaunchTargets();
       }
@@ -2446,8 +2815,13 @@ app.on('ready', async () => {
   // --- Settings ---
   ipcMain.handle('settings:load', () => loadSettings());
   ipcMain.handle('settings:save', (_, data) => {
-    const normalized = { ...data, language: normalizeLanguageCode(data && data.language) };
+    const normalized = {
+      ...data,
+      language: normalizeLanguageCode(data && data.language),
+      adblockAggressive: !(data && data.adblockAggressive === false),
+    };
     saveSettings(normalized);
+    updateAdblockModeFromSettings(normalized);
     // Notify ALL windows that settings changed so they can reload
     windows.forEach(w => {
       if (w && !w.isDestroyed()) {
@@ -2517,7 +2891,7 @@ app.on('ready', async () => {
   ipcMain.handle('usage:track', (_, url, seconds) => { trackUsage(url, seconds); return true; });
 
   // --- Pulse ---
-  ipcMain.handle('pulse:getStats', () => ({ ...pulseStats }));
+  ipcMain.handle('pulse:getStats', () => ({ ...pulseStats, adblockAggressive: isAdblockAggressiveEnabled() }));
   ipcMain.handle('pulse:resetStats', () => {
     pulseStats = { adsBlocked: 0, trackersBlocked: 0, requestsTotal: 0, dataSavedKB: 0, sessionStart: Date.now() };
     return true;
@@ -2525,7 +2899,16 @@ app.on('ready', async () => {
 
   // --- Config (legacy compat) ---
   ipcMain.handle('config:load', () => loadSettings());
-  ipcMain.handle('config:save', (_, data) => { saveSettings(data); return true; });
+  ipcMain.handle('config:save', (_, data) => {
+    const normalized = {
+      ...data,
+      language: normalizeLanguageCode(data && data.language),
+      adblockAggressive: !(data && data.adblockAggressive === false),
+    };
+    saveSettings(normalized);
+    updateAdblockModeFromSettings(normalized);
+    return true;
+  });
 
   // --- System ---
   ipcMain.handle('shell:openExternal', (_, url) => shell.openExternal(url));
@@ -2602,6 +2985,12 @@ app.on('ready', async () => {
     if (result) return { ok: false, error: result, path: dir };
     return { ok: true, path: dir };
   });
+
+  // --- Extensions ---
+  ipcMain.handle('extensions:list', () => getCustomExtensionsState());
+  ipcMain.handle('extensions:addFromDialog', () => addCustomExtensionFromDialog());
+  ipcMain.handle('extensions:remove', (_, extensionId) => removeCustomExtensionById(extensionId));
+  ipcMain.handle('extensions:showInFolder', (_, extensionId) => showCustomExtensionInFolder(extensionId));
 
   // --- App Updates ---
   ipcMain.handle('update:getState', () => buildPublicUpdateState());
@@ -3601,6 +3990,7 @@ Browser-action rules:
   // ============================================================
   app.name = 'Olewser';
   app.setAppUserModelId(APP_ID);
+  await bootstrapCustomExtensions();
   createWindow();
 });
 

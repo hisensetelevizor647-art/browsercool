@@ -158,6 +158,14 @@ contextBridge.exposeInMainWorld('olewser', {
         removeListeners: () => ipcRenderer.removeAllListeners('app-update:state'),
     },
 
+    // --- Extensions ---
+    extensions: {
+        list: () => ipcRenderer.invoke('extensions:list'),
+        addFromDialog: () => ipcRenderer.invoke('extensions:addFromDialog'),
+        remove: (extensionId) => ipcRenderer.invoke('extensions:remove', extensionId),
+        showInFolder: (extensionId) => ipcRenderer.invoke('extensions:showInFolder', extensionId),
+    },
+
     // --- Shell ---
     shell: {
         openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),

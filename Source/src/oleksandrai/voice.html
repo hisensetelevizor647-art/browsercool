@@ -12,6 +12,69 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="auth.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            const isInsideBrowser = window.parent !== window;
+            if (!isInsideBrowser) return;
+
+            const pending = {};
+
+            function call(action, payload) {
+                return new Promise((resolve) => {
+                    const msgId = 'mauzer_voice_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+                    pending[msgId] = resolve;
+                    window.parent.postMessage({ __mauzerBridge: true, msgId, action, payload: payload || {} }, '*');
+                    setTimeout(() => {
+                        if (!pending[msgId]) return;
+                        delete pending[msgId];
+                        resolve({ error: 'Bridge timeout for action: ' + action });
+                    }, 15000);
+                });
+            }
+
+            window.addEventListener('message', (event) => {
+                if (event.source !== window.parent) return;
+                const msg = event.data;
+                if (!msg || !msg.__mauzerReply) return;
+                const done = pending[msg.msgId];
+                if (!done) return;
+                delete pending[msg.msgId];
+                done(msg.result);
+            });
+
+            const existingOlewser = window.olewser || {};
+            const existingAi = existingOlewser.ai || {};
+            const bridgeAi = {
+                captureTab: () => call('captureTab'),
+                captureWithInfo: () => call('captureWithInfo'),
+                describeScreen: (b64) => call('describeScreen', { base64: b64 }),
+                getPageInfo: () => call('getPageInfo'),
+                navigate: (url) => call('navigate', { url }),
+                googleSearch: (query) => call('googleSearch', { query }),
+                searchYoutube: (query) => call('searchYoutube', { query }),
+                openTab: (url) => call('openTab', { url }),
+                goBack: () => call('goBack'),
+                goForward: () => call('goForward'),
+                scroll: (direction) => call('scroll', { direction }),
+                clickText: (text) => call('clickText', { text }),
+                typeText: (target_text, value) => call('typeText', { target_text, value }),
+                executeAction: (action) => call('executeAction', action),
+                chat: (messages) => call('aiChat', { messages }),
+                speak: (text, opts = {}) => call('aiSpeak', { text, lang: opts.lang || '' }),
+                vision: () => call('aiVision'),
+            };
+
+            window.olewser = {
+                ...existingOlewser,
+                ai: {
+                    ...existingAi,
+                    ...bridgeAi
+                }
+            };
+        })();
+    </script>
 
     <style>
         body {
@@ -832,6 +895,8 @@
         let showSubtitles = localStorage.getItem('showSubtitles') === 'true';
         let showInputPanel = localStorage.getItem('showInputPanel') === 'true';
         let interruptionEnabled = localStorage.getItem('interruptionEnabled') === 'true'; // DEFAULT: False
+        let activeVoiceAudio = null;
+        let speakRunToken = 0;
 
         // Elements
         const statusEl = document.getElementById('status');
@@ -857,6 +922,35 @@
         let objectDetectionModel = null;
         let isDetecting = false;
 
+        function getBrowserAi() {
+            if (window.olewser && window.olewser.ai) return window.olewser.ai;
+            try {
+                if (window.parent && window.parent !== window && window.parent.olewser && window.parent.olewser.ai) {
+                    return window.parent.olewser.ai;
+                }
+            } catch (_) { }
+            return null;
+        }
+
+        function isSpeechActive() {
+            return !!(activeVoiceAudio && !activeVoiceAudio.paused) || window.speechSynthesis.speaking;
+        }
+
+        function stopActiveSpeech() {
+            speakRunToken += 1;
+            if (activeVoiceAudio) {
+                try { activeVoiceAudio.pause(); } catch (_) { }
+                try {
+                    if (activeVoiceAudio.src && activeVoiceAudio.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(activeVoiceAudio.src);
+                    }
+                } catch (_) { }
+                activeVoiceAudio.src = '';
+                activeVoiceAudio = null;
+            }
+            window.speechSynthesis.cancel();
+        }
+
         // --- LOCALIZATION & INIT ---
         function updateInterfaceLanguage() {
             const t = translations[currentLanguage];
@@ -869,7 +963,7 @@
             });
 
             // Status & Inputs
-            if (!isProcessing && !window.speechSynthesis.speaking) statusEl.textContent = t.statusListening;
+            if (!isProcessing && !isSpeechActive()) statusEl.textContent = t.statusListening;
             textInput.placeholder = t.placeholder;
 
             // Re-init Recognition if needed
@@ -948,10 +1042,7 @@
         // --- INTERRUPTION LOGIC ---
         function checkInterruption() {
             if (interruptionEnabled) {
-                // Cancel Speech
-                if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.cancel();
-                }
+                stopActiveSpeech();
                 // Cancel API Call
                 if (abortController) {
                     abortController.abort();
@@ -963,7 +1054,7 @@
                 return true;
             } else {
                 // If interruption DISABLED, ignore input while processing/speaking
-                if (isProcessing || window.speechSynthesis.speaking) {
+                if (isProcessing || isSpeechActive()) {
                     return false;
                 }
                 return true;
@@ -974,7 +1065,13 @@
         const avatarModal = document.getElementById('avatar-modal');
         document.getElementById('voice-settings-btn').onclick = () => avatarModal.classList.remove('hidden');
         document.getElementById('close-avatar-modal').onclick = () => avatarModal.classList.add('hidden');
-        document.getElementById('btn-exit').onclick = () => window.location.href = 'index.html';
+        document.getElementById('btn-exit').onclick = () => {
+            stopActiveSpeech();
+            if (recognition) {
+                try { recognition.stop(); } catch (_) { }
+            }
+            window.location.href = 'index.html';
+        };
 
         document.getElementById('btn-add').onclick = () => {
             if (plusMenu.classList.contains('hidden')) {
@@ -1016,7 +1113,7 @@
                 if (checkInterruption()) {
                     textInput.value = '';
                     callAI(val);
-                } else if (!isProcessing && !window.speechSynthesis.speaking) {
+                } else if (!isProcessing && !isSpeechActive()) {
                     textInput.value = '';
                     callAI(val);
                 }
@@ -1214,12 +1311,24 @@
             if (currentLanguage === 'en') langName = 'English';
             if (currentLanguage === 'uk') langName = 'Ukrainian';
 
-            const systemPrompt = `You are OleksandrAi, a smart voice assistant.
+            const systemPrompt = `You are OleksandrAi, a smart voice assistant for browser voice mode.
             IMPORTANT:
             1. Respond ONLY in ${langName} language.
             2. Be concise, friendly, and conversational.
             3. Do not use markdown (*bold*) as it is read aloud.
-            4. If the user asks, you are currently appearing as a ${selectedAvatar}.`;
+            4. If the user asks, you are currently appearing as a ${selectedAvatar}.
+            5. When the user asks to control the browser, include action tags:
+               [BROWSER:navigate:https://example.com]
+               [BROWSER:googleSearch:search query]
+               [BROWSER:searchYoutube:search query]
+               [BROWSER:openTab:https://example.com]
+               [BROWSER:clickText:button text]
+               [BROWSER:typeText:field label|value]
+               [BROWSER:scroll:down] or [BROWSER:scroll:up]
+               [BROWSER:goBack]
+               [BROWSER:goForward]
+            6. You may output multiple [BROWSER:...] tags in one answer.
+            7. Keep one short spoken sentence after the tags, describing the result or next step.`;
 
             const messages = [{ role: 'system', content: systemPrompt }];
 
@@ -1271,7 +1380,7 @@
                 const aiResponse = await callOpenAIAPI(text);
                 if (aiResponse) { // If not aborted
                     stopThinking();
-                    processResponse(aiResponse);
+                    await processResponse(aiResponse);
 
                     if (attachedMedia.length > 0 || currentLinkAttachment) {
                         attachedMedia = [];
@@ -1287,14 +1396,86 @@
             }
         }
 
-        function processResponse(fullText) {
+        async function executeBrowserCommands(text) {
+            const ai = getBrowserAi();
+            if (!ai) return text;
+
+            const tagRegex = /\[BROWSER:([a-zA-Z]+)(?::([^\]]*))?\]/g;
+            const commands = [];
+            let match;
+            while ((match = tagRegex.exec(text)) !== null) {
+                commands.push({
+                    full: match[0],
+                    action: match[1],
+                    param: (match[2] || '').trim()
+                });
+            }
+
+            if (!commands.length) return text;
+
+            let cleanText = text;
+            for (const cmd of commands) {
+                try {
+                    switch (cmd.action) {
+                        case 'navigate':
+                            await ai.navigate(cmd.param);
+                            break;
+                        case 'googleSearch':
+                            await ai.googleSearch(cmd.param);
+                            break;
+                        case 'searchYoutube':
+                            await ai.searchYoutube(cmd.param);
+                            break;
+                        case 'openTab':
+                            await ai.openTab(cmd.param);
+                            break;
+                        case 'clickText':
+                            await ai.clickText(cmd.param);
+                            break;
+                        case 'typeText': {
+                            const parts = cmd.param.split('|');
+                            const target = (parts[0] || '').trim();
+                            const value = parts.slice(1).join('|').trim();
+                            await ai.typeText(target, value);
+                            break;
+                        }
+                        case 'scroll':
+                            await ai.scroll(cmd.param || 'down');
+                            break;
+                        case 'goBack':
+                            await ai.goBack();
+                            break;
+                        case 'goForward':
+                            await ai.goForward();
+                            break;
+                        default:
+                            break;
+                    }
+                } catch (e) {
+                    console.warn('Voice command failed:', cmd.action, e && e.message ? e.message : e);
+                }
+                cleanText = cleanText.replace(cmd.full, '').trim();
+            }
+
+            return cleanText;
+        }
+
+        async function processResponse(fullText) {
             const sourceRegex = /\[Source: ([^\]]+)\]/g;
             let sources = [];
             let match;
             while (match = sourceRegex.exec(fullText)) {
                 sources.push(match[1]);
             }
-            const cleanText = fullText.replace(sourceRegex, '').trim();
+            let cleanText = fullText.replace(sourceRegex, '').trim();
+            cleanText = await executeBrowserCommands(cleanText);
+            if (!cleanText) {
+                cleanText = currentLanguage === 'uk'
+                    ? 'Готово.'
+                    : currentLanguage === 'en'
+                        ? 'Done.'
+                        : 'Hotovo.';
+            }
 
             sourcesContainer.innerHTML = sources.map(s =>
                 `<span class="bg-blue-600/50 px-3 py-1 rounded-full text-xs border border-blue-400/30">${s}</span>`
@@ -1306,35 +1487,98 @@
 
         // --- SPEECH SYNTHESIS ---
         function speak(text) {
-            window.speechSynthesis.cancel();
-            if (recognition) { try { recognition.stop(); } catch (e) { } }
+            if (!text) return;
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = getLangCode();
+            stopActiveSpeech();
+            if (recognition) {
+                try { recognition.stop(); } catch (e) { }
+            }
 
-            utterance.onstart = () => {
-                document.body.classList.remove('listening');
-                document.body.classList.add('speaking');
-                statusEl.textContent = translations[currentLanguage].statusSpeaking;
-                if (showSubtitles) {
-                    subtitleOverlay.textContent = text;
-                    subtitleOverlay.classList.add('visible');
-                }
-            };
+            const runToken = speakRunToken;
+            document.body.classList.remove('listening');
+            document.body.classList.add('speaking');
+            statusEl.textContent = translations[currentLanguage].statusSpeaking;
+            if (showSubtitles) {
+                subtitleOverlay.textContent = text;
+                subtitleOverlay.classList.add('visible');
+            }
 
-            utterance.onend = () => {
+            const finishSpeaking = () => {
+                if (runToken !== speakRunToken) return;
                 document.body.classList.remove('speaking');
                 document.body.classList.add('listening');
                 statusEl.textContent = translations[currentLanguage].statusListening;
                 subtitleOverlay.classList.remove('visible');
 
-                // Restart Listening
-                if (!isProcessing) {
-                    setTimeout(() => { try { recognition.start(); } catch (e) { } }, 500);
+                if (!isProcessing && recognition) {
+                    setTimeout(() => {
+                        if (!isProcessing && !isSpeechActive()) {
+                            try { recognition.start(); } catch (e) { }
+                        }
+                    }, 400);
                 }
             };
 
-            window.speechSynthesis.speak(utterance);
+            (async () => {
+                let playedByBackend = false;
+                const ai = getBrowserAi();
+                if (ai && typeof ai.speak === 'function') {
+                    try {
+                        const backend = await ai.speak(text, { lang: currentLanguage });
+                        if (runToken !== speakRunToken) return;
+                        if (backend && backend.audio) {
+                            playedByBackend = await new Promise((resolve) => {
+                                try {
+                                    const binary = atob(backend.audio);
+                                    const bytes = new Uint8Array(binary.length);
+                                    for (let i = 0; i < binary.length; i++) {
+                                        bytes[i] = binary.charCodeAt(i);
+                                    }
+                                    const mime = backend.format === 'mp3' ? 'audio/mpeg' : 'audio/mp3';
+                                    const blob = new Blob([bytes], { type: mime });
+                                    const objectUrl = URL.createObjectURL(blob);
+                                    const audio = new Audio(objectUrl);
+                                    activeVoiceAudio = audio;
+
+                                    audio.onended = () => {
+                                        if (activeVoiceAudio === audio) activeVoiceAudio = null;
+                                        URL.revokeObjectURL(objectUrl);
+                                        resolve(true);
+                                    };
+                                    audio.onerror = () => {
+                                        if (activeVoiceAudio === audio) activeVoiceAudio = null;
+                                        URL.revokeObjectURL(objectUrl);
+                                        resolve(false);
+                                    };
+
+                                    const playPromise = audio.play();
+                                    if (playPromise && typeof playPromise.catch === 'function') {
+                                        playPromise.catch(() => {
+                                            if (activeVoiceAudio === audio) activeVoiceAudio = null;
+                                            URL.revokeObjectURL(objectUrl);
+                                            resolve(false);
+                                        });
+                                    }
+                                } catch (_) {
+                                    resolve(false);
+                                }
+                            });
+                        }
+                    } catch (_) { }
+                }
+
+                if (!playedByBackend && runToken === speakRunToken) {
+                    await new Promise((resolve) => {
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = getLangCode();
+                        utterance.onend = () => resolve();
+                        utterance.onerror = () => resolve();
+                        window.speechSynthesis.speak(utterance);
+                    });
+                }
+
+                finishSpeaking();
+            })();
         }
 
         // --- SPEECH RECOGNITION ---
@@ -1357,14 +1601,14 @@
 
                 // LOGIC: If interruption is enabled and we detect input -> Stop everything
                 if (interruptionEnabled && (interim.length > 0 || final.length > 0)) {
-                    if (window.speechSynthesis.speaking) {
-                        window.speechSynthesis.cancel();
+                    if (isSpeechActive()) {
+                        stopActiveSpeech();
                         if (abortController) abortController.abort();
                         stopThinking();
                     }
                 }
 
-                if (!interruptionEnabled && (isProcessing || window.speechSynthesis.speaking)) return;
+                if (!interruptionEnabled && (isProcessing || isSpeechActive())) return;
 
                 if (interim) {
                     transcriptEl.textContent = interim;
@@ -1387,7 +1631,7 @@
             recognition.onend = () => {
                 // Auto restart for continuous listening
                 document.body.classList.remove('listening');
-                if (!isProcessing && !window.speechSynthesis.speaking) {
+                if (!isProcessing && !isSpeechActive()) {
                     setTimeout(() => {
                         try { recognition.start(); } catch (e) { }
                     }, 300);

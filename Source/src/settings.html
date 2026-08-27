@@ -468,6 +468,99 @@
             font-size: 10px;
             color: rgba(255, 255, 255, 0.3);
         }
+
+        .custom-extensions-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .custom-extension-item {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .custom-extension-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-extension-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .custom-extension-version {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            flex-shrink: 0;
+        }
+
+        .custom-extension-path {
+            margin-top: 6px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            word-break: break-all;
+        }
+
+        .custom-extension-status {
+            margin-top: 6px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.52);
+        }
+
+        .custom-extension-status.ok {
+            color: #82d67b;
+        }
+
+        .custom-extension-status.warn {
+            color: #f0cc6b;
+        }
+
+        .custom-extension-status.error {
+            color: #e47d7d;
+        }
+
+        .custom-extension-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        [data-theme="light"] .custom-extension-item {
+            border-color: rgba(0, 0, 0, 0.1);
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        [data-theme="light"] .custom-extension-title {
+            color: rgba(0, 0, 0, 0.86);
+        }
+
+        [data-theme="light"] .custom-extension-version,
+        [data-theme="light"] .custom-extension-path,
+        [data-theme="light"] .custom-extension-status {
+            color: rgba(0, 0, 0, 0.55);
+        }
+
+        [data-theme="light"] .custom-extension-status.ok {
+            color: #2c8f35;
+        }
+
+        [data-theme="light"] .custom-extension-status.warn {
+            color: #a2780b;
+        }
+
+        [data-theme="light"] .custom-extension-status.error {
+            color: #b13a3a;
+        }
     </style>
 </head>
 
@@ -695,6 +788,23 @@
             </div>
         </div>
 
+        <!-- EXTENSIONS -->
+        <div class="section">
+            <div class="section-title" data-i18n="sectionExtensions">Расширения</div>
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+                <div class="setting-info">
+                    <div class="setting-label" data-i18n="customExtensions">Кастомные расширения</div>
+                    <div class="setting-desc" data-i18n="customExtensionsDesc">Подключайте unpacked-расширения по папке с manifest.json</div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                    <button class="btn-secondary" id="btn-extension-add" data-i18n="addExtension">Добавить расширение</button>
+                    <button class="btn-secondary" id="btn-extension-refresh" data-i18n="refreshExtensions">Обновить список</button>
+                </div>
+                <div class="setting-desc" id="extensions-empty" data-i18n="noExtensions">Пока нет добавленных расширений</div>
+                <div class="custom-extensions-list" id="extensions-list"></div>
+            </div>
+        </div>
+
         <!-- ABOUT -->
         <div class="section">
             <div class="section-title" data-i18n="sectionAbout">О браузере</div>
@@ -750,6 +860,22 @@
                 sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API ключ', aiApiKeyDesc: 'Получите на platform.openai.com',
                 sectionDataTransfer: 'Перенос данных', importData: 'Импорт из других браузеров',
                 importDataDesc: 'Перенести закладки и историю из установленных браузеров',
+                sectionExtensions: 'Расширения',
+                customExtensions: 'Кастомные расширения',
+                customExtensionsDesc: 'Подключайте unpacked-расширения по папке с manifest.json',
+                addExtension: 'Добавить расширение',
+                refreshExtensions: 'Обновить список',
+                noExtensions: 'Пока нет добавленных расширений',
+                extensionLoaded: 'Загружено',
+                extensionNotLoaded: 'Не загружено',
+                extensionMissing: 'Папка расширения не найдена',
+                extensionError: 'Ошибка',
+                extensionAdded: 'Расширение добавлено',
+                extensionRemoved: 'Расширение удалено',
+                extensionAddFailed: 'Не удалось добавить расширение',
+                extensionRemoveFailed: 'Не удалось удалить расширение',
+                removeExtensionAction: 'Удалить',
+                openExtensionFolder: 'Открыть папку',
                 importing: 'Импорт...', importDone: 'Готово! Данные перенесены.', importError: 'Ошибка при импорте',
                 updateChecking: 'Проверка обновлений...',
                 updateAvailable: 'Доступна новая версия {version}',
@@ -798,6 +924,22 @@
                 sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API Key', aiApiKeyDesc: 'Get at platform.openai.com',
                 sectionDataTransfer: 'Data Transfer', importData: 'Import from other browsers',
                 importDataDesc: 'Import bookmarks and history from installed browsers',
+                sectionExtensions: 'Extensions',
+                customExtensions: 'Custom extensions',
+                customExtensionsDesc: 'Load unpacked extensions from folders containing manifest.json',
+                addExtension: 'Add extension',
+                refreshExtensions: 'Refresh list',
+                noExtensions: 'No custom extensions added yet',
+                extensionLoaded: 'Loaded',
+                extensionNotLoaded: 'Not loaded',
+                extensionMissing: 'Extension folder is missing',
+                extensionError: 'Error',
+                extensionAdded: 'Extension added',
+                extensionRemoved: 'Extension removed',
+                extensionAddFailed: 'Failed to add extension',
+                extensionRemoveFailed: 'Failed to remove extension',
+                removeExtensionAction: 'Remove',
+                openExtensionFolder: 'Open folder',
                 importing: 'Importing...', importDone: 'Done! Data imported.', importError: 'Import error',
                 updateChecking: 'Checking for updates...',
                 updateAvailable: 'New version {version} is available',
@@ -846,6 +988,22 @@
                 sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API ключ', aiApiKeyDesc: 'Отримайте на platform.openai.com',
                 sectionDataTransfer: 'Перенесення даних', importData: 'Імпорт з інших браузерів',
                 importDataDesc: 'Перенести закладки та історію з встановлених браузерів',
+                sectionExtensions: 'Розширення',
+                customExtensions: 'Кастомні розширення',
+                customExtensionsDesc: 'Підключайте unpacked-розширення з папки, де є manifest.json',
+                addExtension: 'Додати розширення',
+                refreshExtensions: 'Оновити список',
+                noExtensions: 'Ще немає доданих розширень',
+                extensionLoaded: 'Завантажено',
+                extensionNotLoaded: 'Не завантажено',
+                extensionMissing: 'Папка розширення відсутня',
+                extensionError: 'Помилка',
+                extensionAdded: 'Розширення додано',
+                extensionRemoved: 'Розширення видалено',
+                extensionAddFailed: 'Не вдалося додати розширення',
+                extensionRemoveFailed: 'Не вдалося видалити розширення',
+                removeExtensionAction: 'Видалити',
+                openExtensionFolder: 'Відкрити папку',
                 importing: 'Імпорт...', importDone: 'Готово! Дані перенесено.', importError: 'Помилка при імпорті',
                 updateChecking: 'Перевірка оновлень...',
                 updateAvailable: 'Доступна нова версія {version}',
@@ -894,6 +1052,22 @@
                 sectionAI: 'Olewser AI Agent', aiApiKey: 'OpenAI API kľúč', aiApiKeyDesc: 'Získajte na platform.openai.com',
                 sectionDataTransfer: 'Prenos údajov', importData: 'Import z iných prehliadačov',
                 importDataDesc: 'Importovať záložky a históriu z nainštalovaných prehliadačov',
+                sectionExtensions: 'Rozšírenia',
+                customExtensions: 'Vlastné rozšírenia',
+                customExtensionsDesc: 'Načítajte unpacked rozšírenia zo zložky s manifest.json',
+                addExtension: 'Pridať rozšírenie',
+                refreshExtensions: 'Obnoviť zoznam',
+                noExtensions: 'Zatiaľ nie sú pridané žiadne rozšírenia',
+                extensionLoaded: 'Načítané',
+                extensionNotLoaded: 'Nenačítané',
+                extensionMissing: 'Priečinok rozšírenia chýba',
+                extensionError: 'Chyba',
+                extensionAdded: 'Rozšírenie bolo pridané',
+                extensionRemoved: 'Rozšírenie bolo odstránené',
+                extensionAddFailed: 'Nepodarilo sa pridať rozšírenie',
+                extensionRemoveFailed: 'Nepodarilo sa odstrániť rozšírenie',
+                removeExtensionAction: 'Odstrániť',
+                openExtensionFolder: 'Otvoriť priečinok',
                 importing: 'Importujem...', importDone: 'Hotovo! Údaje boli importované.', importError: 'Chyba pri importe',
                 updateChecking: 'Kontrolujem aktualizácie...',
                 updateAvailable: 'Nová verzia {version} je dostupná',
@@ -957,6 +1131,7 @@
 
         let settings = {};
         let updateState = null;
+        let customExtensions = [];
 
         function showToast(msg) {
             const old = document.querySelector('.toast');
@@ -1081,6 +1256,7 @@
             }
             applyToUI();
             await initImportSection();
+            await refreshExtensionsSection();
         }
 
         function applyToUI() {
@@ -1122,6 +1298,7 @@
             // Apply language
             applyLanguage();
             renderUpdateSection();
+            renderExtensionsSection();
         }
 
         // Bind select changes
@@ -1225,6 +1402,120 @@
             };
         }
 
+        function getCustomExtensionStatus(ext) {
+            if (!ext) return { text: '', klass: '' };
+            if (!ext.existsOnDisk) return { text: t('extensionMissing'), klass: 'error' };
+            if (ext.loaded) return { text: t('extensionLoaded'), klass: 'ok' };
+            if (ext.error) return { text: `${t('extensionError')}: ${ext.error}`, klass: 'error' };
+            return { text: t('extensionNotLoaded'), klass: 'warn' };
+        }
+
+        function renderExtensionsSection() {
+            const listEl = document.getElementById('extensions-list');
+            const emptyEl = document.getElementById('extensions-empty');
+            if (!listEl || !emptyEl) return;
+
+            listEl.innerHTML = '';
+            if (!Array.isArray(customExtensions) || customExtensions.length === 0) {
+                emptyEl.style.display = '';
+                emptyEl.textContent = t('noExtensions');
+                return;
+            }
+
+            emptyEl.style.display = 'none';
+            customExtensions.forEach((ext) => {
+                const card = document.createElement('div');
+                card.className = 'custom-extension-item';
+
+                const top = document.createElement('div');
+                top.className = 'custom-extension-top';
+
+                const title = document.createElement('div');
+                title.className = 'custom-extension-title';
+                title.textContent = ext.name || ext.id || 'Extension';
+
+                const version = document.createElement('div');
+                version.className = 'custom-extension-version';
+                version.textContent = ext.version ? `v${ext.version}` : '';
+
+                top.appendChild(title);
+                top.appendChild(version);
+
+                const pathEl = document.createElement('div');
+                pathEl.className = 'custom-extension-path';
+                pathEl.textContent = ext.sourcePath || '';
+
+                const status = getCustomExtensionStatus(ext);
+                const statusEl = document.createElement('div');
+                statusEl.className = `custom-extension-status ${status.klass}`.trim();
+                statusEl.textContent = status.text;
+
+                const actions = document.createElement('div');
+                actions.className = 'custom-extension-actions';
+
+                const openBtn = document.createElement('button');
+                openBtn.className = 'btn-secondary';
+                openBtn.textContent = t('openExtensionFolder');
+                openBtn.addEventListener('click', async () => {
+                    const key = ext.id || ext.sourcePath;
+                    const result = await window.olewser.extensions.showInFolder(key);
+                    if (!result || !result.ok) {
+                        showToast((result && result.error) ? result.error : t('extensionError'));
+                    }
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-danger';
+                removeBtn.textContent = t('removeExtensionAction');
+                removeBtn.style.marginTop = '0';
+                removeBtn.addEventListener('click', async () => {
+                    const key = ext.id || ext.sourcePath;
+                    const result = await window.olewser.extensions.remove(key);
+                    if (result && result.ok) {
+                        customExtensions = Array.isArray(result.extensions) ? result.extensions : [];
+                        renderExtensionsSection();
+                        showToast(t('extensionRemoved'));
+                    } else {
+                        showToast((result && result.error) ? result.error : t('extensionRemoveFailed'));
+                    }
+                });
+
+                actions.appendChild(openBtn);
+                actions.appendChild(removeBtn);
+
+                card.appendChild(top);
+                card.appendChild(pathEl);
+                card.appendChild(statusEl);
+                card.appendChild(actions);
+                listEl.appendChild(card);
+            });
+        }
+
+        async function refreshExtensionsSection() {
+            if (!window.olewser?.extensions) return;
+            try {
+                const result = await window.olewser.extensions.list();
+                customExtensions = Array.isArray(result) ? result : [];
+            } catch (_) {
+                customExtensions = [];
+            }
+            renderExtensionsSection();
+        }
+
+        async function addCustomExtensionFromDialog() {
+            if (!window.olewser?.extensions) return;
+            const result = await window.olewser.extensions.addFromDialog();
+            if (!result || result.canceled) return;
+            if (result.ok) {
+                customExtensions = Array.isArray(result.extensions) ? result.extensions : customExtensions;
+                renderExtensionsSection();
+                showToast(t('extensionAdded'));
+            } else {
+                const message = result.error ? `${t('extensionAddFailed')}: ${result.error}` : t('extensionAddFailed');
+                showToast(message);
+            }
+        }
+
         const defaultBrowserBtn = document.getElementById('btn-default-browser');
         if (defaultBrowserBtn) {
             defaultBrowserBtn.addEventListener('click', async () => {
@@ -1257,6 +1548,22 @@
                 } catch (_) {
                     showToast(t('appFolderError'));
                 }
+            });
+        }
+
+        const addExtensionBtn = document.getElementById('btn-extension-add');
+        if (addExtensionBtn) {
+            addExtensionBtn.addEventListener('click', () => {
+                addCustomExtensionFromDialog().catch((err) => {
+                    showToast(err?.message || t('extensionAddFailed'));
+                });
+            });
+        }
+
+        const refreshExtensionBtn = document.getElementById('btn-extension-refresh');
+        if (refreshExtensionBtn) {
+            refreshExtensionBtn.addEventListener('click', () => {
+                refreshExtensionsSection().catch(() => { });
             });
         }
 

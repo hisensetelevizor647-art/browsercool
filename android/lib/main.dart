@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -13,6 +14,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'src/ai/ai_service.dart';
 import 'src/ai/model_catalog.dart';
 import 'src/config/app_config.dart';
+import 'src/ui/dual_cube_spinner.dart';
+import 'src/ui/liquid_glass.dart';
+import 'src/updater/app_updater.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -352,7 +356,8 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
   String _homePage = _defaultHomePage;
   _SearchEngine _searchEngine = _SearchEngine.google;
   _AiResponseLanguage _aiResponseLanguage = _AiResponseLanguage.auto;
-  AiModel _selectedModel = AiModel.pro;
+  AiModel _selectedModel = AiModel.ultra40;
+  ThinkingLevel _thinkingLevel = ThinkingLevel.medium;
 
   Uri? _pendingIncomingUri;
   bool _manualStopRequested = false;
@@ -858,77 +863,145 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
 
   PreferredSizeWidget _buildTopBrowserBar() {
     final ColorScheme colors = Theme.of(context).colorScheme;
-    return AppBar(
-      titleSpacing: 6,
-      toolbarHeight: 66,
-      title: Row(
-        children: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            tooltip: 'Back',
-            onPressed: _canGoBack
-                ? () async {
-                    await _webViewController.goBack();
-                    await _refreshNavigationControls();
-                  }
-                : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_rounded),
-            tooltip: 'Forward',
-            onPressed: _canGoForward
-                ? () async {
-                    await _webViewController.goForward();
-                    await _refreshNavigationControls();
-                  }
-                : null,
-          ),
-          Expanded(
-            child: TextField(
-              controller: _urlController,
-              focusNode: _urlFocusNode,
-              textInputAction: TextInputAction.go,
-              onSubmitted: (_) => _openTypedInput(),
-              decoration: InputDecoration(
-                hintText: 'Search or type URL',
-                filled: true,
-                fillColor: colors.surfaceContainerHighest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(66),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: LiquidGlassContainer(
+            borderRadius: 20,
+            blurSigma: 18,
+            elevation: 6,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              children: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                  tooltip: 'Back',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _canGoBack
+                      ? () async {
+                          await _webViewController.goBack();
+                          await _refreshNavigationControls();
+                        }
+                      : null,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                  tooltip: 'Forward',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _canGoForward
+                      ? () async {
+                          await _webViewController.goForward();
+                          await _refreshNavigationControls();
+                        }
+                      : null,
                 ),
-              ),
+                Expanded(
+                  child: Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.08)
+                          : Colors.black.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.black.withOpacity(0.06),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        const SizedBox(width: 10),
+                        Icon(
+                          _currentUrl.startsWith('https')
+                              ? Icons.lock_outline_rounded
+                              : Icons.search_rounded,
+                          size: 16,
+                          color: colors.primary.withOpacity(0.8),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TextField(
+                            controller: _urlController,
+                            focusNode: _urlFocusNode,
+                            textInputAction: TextInputAction.go,
+                            style: const TextStyle(fontSize: 13),
+                            onSubmitted: (_) => _openTypedInput(),
+                            decoration: const InputDecoration(
+                              hintText: 'Search or type URL',
+                              hintStyle: TextStyle(fontSize: 13),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 10),
+                            ),
+                          ),
+                        ),
+                        // Copy URL button
+                        IconButton(
+                          icon: const Icon(Icons.content_copy_rounded, size: 16),
+                          tooltip: 'Скопіювати URL (Copy)',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () async {
+                            final String textToCopy = _urlController.text.trim().isNotEmpty
+                                ? _urlController.text.trim()
+                                : _currentUrl;
+                            await Clipboard.setData(ClipboardData(text: textToCopy));
+                            _showSnack('URL скопійовано у буфер обміну');
+                          },
+                        ),
+                        // Clear URL button (one-click full clear)
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 16),
+                          tooltip: 'Стерти цілий URL (Clear)',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            _urlController.clear();
+                            _urlFocusNode.requestFocus();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+                  tooltip: 'Go',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _openTypedInput,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  tooltip: 'Reload',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    await _webViewController.reload();
+                    await _refreshNavigationControls();
+                  },
+                ),
+                const SizedBox(width: 2),
+                _buildAiToggleButton(),
+              ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_upward_rounded),
-            tooltip: 'Go',
-            onPressed: _openTypedInput,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload',
-            onPressed: () async {
-              await _webViewController.reload();
-              await _refreshNavigationControls();
-            },
-          ),
-          const SizedBox(width: 4),
-          _buildAiToggleButton(),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildAiToggleButton() {
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool visible = _panelVisible;
+    final Color logoColor = isDark ? Colors.white : Colors.black;
+
     return Material(
-      color: visible ? colors.primaryContainer : colors.surfaceContainerHighest,
+      color: visible ? colors.primaryContainer : (isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06)),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -944,17 +1017,20 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
           });
         },
         child: SizedBox(
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           child: Padding(
             padding: const EdgeInsets.all(9),
             child: Image.asset(
               _aiTopIconAsset,
               fit: BoxFit.contain,
+              color: logoColor,
+              colorBlendMode: BlendMode.srcIn,
               errorBuilder: (_, __, ___) {
                 return Icon(
                   visible ? Icons.smart_toy : Icons.smart_toy_outlined,
                   size: 18,
+                  color: logoColor,
                 );
               },
             ),
@@ -967,10 +1043,13 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
   Widget _buildBottomDock() {
     return SafeArea(
       top: false,
-      child: Material(
-        elevation: 10,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+        child: LiquidGlassContainer(
+          borderRadius: 26,
+          blurSigma: 24,
+          elevation: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: <Widget>[
               _DockIconButton(
@@ -1014,8 +1093,11 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
 
   Widget _buildAssistantDockButton() {
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color logoColor = isDark ? Colors.white : Colors.black;
+
     return Material(
-      color: colors.surfaceContainerHighest,
+      color: isDark ? Colors.white.withOpacity(0.12) : colors.surfaceContainerHighest.withOpacity(0.85),
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
@@ -1024,29 +1106,44 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
           height: 44,
           child: Row(
             children: <Widget>[
-              const SizedBox(width: 12),
-              Icon(Icons.auto_awesome_rounded, size: 16, color: colors.primary),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: Image.asset(
+                  _aiTopIconAsset,
+                  fit: BoxFit.contain,
+                  color: logoColor,
+                  colorBlendMode: BlendMode.srcIn,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 16,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  'Assistant',
+                  _selectedModel.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: colors.onSurfaceVariant,
+                    color: colors.onSurface,
                   ),
                 ),
               ),
+              // Sound waves icon for voice mode
               IconButton(
                 onPressed: _speechReady ? _togglePromptVoiceInput : null,
-                tooltip: _listening ? 'Stop voice mode' : 'Voice mode',
+                tooltip: _listening ? 'Зупинити голос' : 'Голосовий режим',
                 visualDensity: VisualDensity.compact,
                 icon: Icon(
-                  _listening ? Icons.mic_off_rounded : Icons.mic_rounded,
-                  size: 18,
-                  color: colors.primary,
+                  _listening ? Icons.graphic_eq_rounded : Icons.graphic_eq_rounded,
+                  size: 20,
+                  color: _listening ? Colors.redAccent : colors.primary,
                 ),
               ),
               const SizedBox(width: 2),
@@ -1166,7 +1263,17 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        const Icon(Icons.auto_awesome),
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: Image.asset(
+                            _aiTopIconAsset,
+                            fit: BoxFit.contain,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                            colorBlendMode: BlendMode.srcIn,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome_rounded, size: 18),
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         const Expanded(
                           child: Text(
@@ -1220,7 +1327,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                       children: <Widget>[
                         Expanded(
                           child: DropdownButtonFormField<AiModel>(
-                            initialValue: _selectedModel,
+                            value: _selectedModel,
                             onChanged: (AiModel? value) {
                               if (value == null) {
                                 return;
@@ -1247,7 +1354,39 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        if (_selectedModel.supportsThinkingConfig) ...<Widget>[
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: DropdownButtonFormField<ThinkingLevel>(
+                              value: _thinkingLevel,
+                              onChanged: (ThinkingLevel? value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _thinkingLevel = value;
+                                });
+                              },
+                              items: ThinkingLevel.values
+                                  .map(
+                                    (ThinkingLevel lvl) => DropdownMenuItem<ThinkingLevel>(
+                                      value: lvl,
+                                      child: Text(lvl.label, style: const TextStyle(fontSize: 11)),
+                                    ),
+                                  )
+                                  .toList(),
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 6),
                         FilledButton.tonal(
                           onPressed: _thinking ? null : _newChat,
                           child: const Text('New'),
@@ -1271,7 +1410,10 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                               const SizedBox(height: 8),
                           itemBuilder: (BuildContext context, int index) {
                             if (_thinking && index == _chat.length) {
-                              return const _ThinkingMessage();
+                              return _ThinkingMessage(
+                                languageKey: _aiResponseLanguage.key,
+                                modelName: _selectedModel.label,
+                              );
                             }
                             final _ChatMessage message = _chat[index];
                             return _ChatBubble(message: message);
@@ -1469,177 +1611,211 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
   }
 
   Future<void> _openWidgetsSheet() async {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color logoColor = isDark ? Colors.white : Colors.black;
+
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.add),
-                title: const Text('New tab'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _newTab();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.assistant_rounded),
-                title: const Text('Assistant quick panel'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openAssistantQuickSheet();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.fullscreen_rounded),
-                title: const Text('Open AI in full screen'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openAiPanel(fullScreen: true, focusPrompt: true);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.bolt_rounded),
-                title: const Text('AI control browser'),
-                subtitle: const Text(
-                  'Say "open...", "search...", "new tab..."',
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                // Grouped AI Features Sliding Liquid Glass Tray
+                LiquidGlassContainer(
+                  borderRadius: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      initiallyExpanded: true,
+                      tilePadding: EdgeInsets.zero,
+                      leading: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Image.asset(
+                          _aiTopIconAsset,
+                          color: logoColor,
+                          colorBlendMode: BlendMode.srcIn,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome_rounded),
+                        ),
+                      ),
+                      title: const Text(
+                        'ШІ Інструменти (AI Suite)',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      ),
+                      subtitle: Text(
+                        '${_selectedModel.label} • Чат, голос, аналіз, агент',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, bottom: 8),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: <Widget>[
+                              ActionChip(
+                                avatar: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                                label: const Text('Чат ШІ'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _openAssistantQuickSheet();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.fullscreen_rounded, size: 16),
+                                label: const Text('Повний екран'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _openAiPanel(fullScreen: true, focusPrompt: true);
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.summarize_outlined, size: 16),
+                                label: const Text('Підсумок сайту'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _summarizeOpenPage();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.analytics_outlined, size: 16),
+                                label: const Text('Аналіз сторінки'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _analyzeOpenPage();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.bolt_rounded, size: 16),
+                                label: const Text('Керування браузером'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _openAiBrowserActionSheet();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.graphic_eq_rounded, size: 16),
+                                label: Text(_listening ? 'Зупинити голос' : 'Голос'),
+                                onPressed: () async {
+                                  Navigator.of(context).pop();
+                                  await _togglePromptVoiceInput();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.visibility_outlined, size: 16),
+                                label: const Text('Контекст у чат'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _appendPageContextToChat();
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const Icon(Icons.photo_camera_back_outlined, size: 16),
+                                label: const Text('Знімок сайту'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _appendPageSnapshotToChat();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openAiBrowserActionSheet();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.mic_rounded),
-                title: Text(
-                  _listening ? 'Stop voice mode' : 'Start voice mode',
+                const SizedBox(height: 10),
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('New tab'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _newTab();
+                  },
                 ),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _togglePromptVoiceInput();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: const Text('Send page context to AI'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _appendPageContextToChat();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera_back_outlined),
-                title: const Text('Send page snapshot to AI'),
-                subtitle: const Text('Visual-like summary from viewport'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _appendPageSnapshotToChat();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.summarize_outlined),
-                title: const Text('Summarize page'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _summarizeOpenPage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.analytics_outlined),
-                title: const Text('Analyze open page'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _analyzeOpenPage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.folder_open_outlined),
-                title: const Text('Open file or photo'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openLocalFile();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.bookmark_add_outlined),
-                title: const Text('Save current site'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _saveCurrentSite();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.bookmark_rounded),
-                title: const Text('Saved sites'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openSavedSitesSheet();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.history),
-                title: const Text('History'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openHistorySheet();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.zoom_in_rounded),
-                title: Text('Zoom in (${_pageZoomPercent}%)'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _setPageZoomPercent(_pageZoomPercent + 10, toast: true);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.zoom_out_rounded),
-                title: const Text('Zoom out'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _setPageZoomPercent(_pageZoomPercent - 10, toast: true);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.zoom_out_map_rounded),
-                title: const Text('Reset zoom (100%)'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _setPageZoomPercent(100, toast: true);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.system_update_alt_rounded),
-                title: const Text('Download latest Android update'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  final Uri updateUri = Uri.parse(AppConfig.androidUpdateUrl);
-                  await _newTab(updateUri.toString());
-                },
-              ),
-              SwitchListTile.adaptive(
-                value: _aggressiveAdBlock,
-                onChanged: (bool value) async {
-                  setState(() {
-                    _aggressiveAdBlock = value;
-                  });
-                  await _savePreferences();
-                },
-                secondary: const Icon(Icons.shield_outlined),
-                title: const Text('Aggressive ad blocking'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined),
-                title: const Text('Settings'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _openSettingsSheet();
-                },
-              ),
-            ],
+                ListTile(
+                  leading: const Icon(Icons.folder_open_outlined),
+                  title: const Text('Open file or photo'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openLocalFile();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bookmark_add_outlined),
+                  title: const Text('Save current site'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _saveCurrentSite();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bookmark_rounded),
+                  title: const Text('Saved sites'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openSavedSitesSheet();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: const Text('History'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openHistorySheet();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.zoom_in_rounded),
+                  title: Text('Zoom in (${_pageZoomPercent}%)'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _setPageZoomPercent(_pageZoomPercent + 10, toast: true);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.zoom_out_rounded),
+                  title: const Text('Zoom out'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _setPageZoomPercent(_pageZoomPercent - 10, toast: true);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.zoom_out_map_rounded),
+                  title: const Text('Reset zoom (100%)'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _setPageZoomPercent(100, toast: true);
+                  },
+                ),
+                SwitchListTile.adaptive(
+                  value: _aggressiveAdBlock,
+                  onChanged: (bool value) async {
+                    setState(() {
+                      _aggressiveAdBlock = value;
+                    });
+                    await _savePreferences();
+                  },
+                  secondary: const Icon(Icons.shield_outlined),
+                  title: const Text('Aggressive ad blocking'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings_outlined),
+                  title: const Text('Settings'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openSettingsSheet();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1647,88 +1823,277 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
   }
 
   Future<void> _openAssistantQuickSheet() async {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color logoColor = isDark ? Colors.white : Colors.black;
+
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Text(
-                  'Assistant',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        return StatefulBuilder(
+          builder: (BuildContext context, void Function(void Function()) setSheetState) {
+            final ColorScheme colors = Theme.of(context).colorScheme;
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  bottom: 12 + MediaQuery.of(context).viewInsets.bottom,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Quick one-hand controls',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                child: LiquidGlassContainer(
+                  borderRadius: 28,
+                  blurSigma: 24,
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      // Header with Dynamic AI Logo, Model Picker, Thinking Mode, and Actions
+                      Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: Image.asset(
+                              _aiTopIconAsset,
+                              fit: BoxFit.contain,
+                              color: logoColor,
+                              colorBlendMode: BlendMode.srcIn,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome_rounded, size: 18),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Model Selector
+                          DropdownButton<AiModel>(
+                            value: _selectedModel,
+                            underline: const SizedBox.shrink(),
+                            borderRadius: BorderRadius.circular(16),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: colors.onSurface,
+                            ),
+                            items: AiModel.values
+                                .map(
+                                  (AiModel m) => DropdownMenuItem<AiModel>(
+                                    value: m,
+                                    child: Text(m.label),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (AiModel? nextModel) {
+                              if (nextModel == null) return;
+                              setSheetState(() {
+                                _selectedModel = nextModel;
+                              });
+                              setState(() {
+                                _selectedModel = nextModel;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          // Thinking Level Selector for 4.0 Ultra
+                          if (_selectedModel.supportsThinkingConfig)
+                            DropdownButton<ThinkingLevel>(
+                              value: _thinkingLevel,
+                              underline: const SizedBox.shrink(),
+                              borderRadius: BorderRadius.circular(16),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: colors.primary,
+                              ),
+                              items: ThinkingLevel.values
+                                  .map(
+                                    (ThinkingLevel lvl) => DropdownMenuItem<ThinkingLevel>(
+                                      value: lvl,
+                                      child: Text(lvl.label),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (ThinkingLevel? nextLvl) {
+                                if (nextLvl == null) return;
+                                setSheetState(() {
+                                  _thinkingLevel = nextLvl;
+                                });
+                                setState(() {
+                                  _thinkingLevel = nextLvl;
+                                });
+                              },
+                            ),
+                          const Spacer(),
+                          // New chat button
+                          IconButton(
+                            onPressed: _thinking
+                                ? null
+                                : () {
+                                    _newChat();
+                                    setSheetState(() {});
+                                  },
+                            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                            tooltip: 'Новий чат (New chat)',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          // Open full screen AI panel
+                          IconButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _openAiPanel(fullScreen: true, focusPrompt: true);
+                            },
+                            icon: const Icon(Icons.fullscreen_rounded, size: 22),
+                            tooltip: 'Розгорнути на весь екран',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Chat messages preview
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 280, minHeight: 80),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                            ),
+                          ),
+                          child: ListView.separated(
+                            padding: const EdgeInsets.all(10),
+                            shrinkWrap: true,
+                            itemCount: _chat.length + (_thinking ? 1 : 0),
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (BuildContext context, int index) {
+                              if (_thinking && index == _chat.length) {
+                                return _ThinkingMessage(
+                                  languageKey: _aiResponseLanguage.key,
+                                  modelName: _selectedModel.label,
+                                );
+                              }
+                              final _ChatMessage msg = _chat[index];
+                              return _ChatBubble(message: msg);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // 3 Quick Action Icons Row
+                      Row(
+                        children: <Widget>[
+                          // 1. Summarize / Page Context
+                          ActionChip(
+                            avatar: const Icon(Icons.auto_stories_rounded, size: 16),
+                            label: const Text('Підсумок сайту', style: TextStyle(fontSize: 11)),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              _appendPageContextToChat();
+                              setSheetState(() {});
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          // 2. Sound Waves Voice Mode
+                          ActionChip(
+                            avatar: Icon(
+                              _listening ? Icons.graphic_eq_rounded : Icons.graphic_eq_rounded,
+                              size: 16,
+                              color: _listening ? Colors.redAccent : null,
+                            ),
+                            label: Text(
+                              _listening ? 'Слухаю...' : 'Голос',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () async {
+                              await _togglePromptVoiceInput();
+                              setSheetState(() {});
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          // 3. Autonomous Agent Mode
+                          ActionChip(
+                            avatar: const Icon(Icons.psychology_rounded, size: 16),
+                            label: const Text('4.0 Agent', style: TextStyle(fontSize: 11)),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              setSheetState(() {
+                                _selectedModel = AiModel.agent40;
+                              });
+                              setState(() {
+                                _selectedModel = AiModel.agent40;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Prompt Input Bar with Send Button
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: <Widget>[
+                          IconButton(
+                            onPressed: _thinking
+                                ? null
+                                : () {
+                                    _openAiToolsSheet();
+                                  },
+                            icon: const Icon(Icons.add_rounded),
+                            tooltip: 'AI Tools',
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _promptController,
+                              focusNode: _promptFocusNode,
+                              minLines: 1,
+                              maxLines: 4,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) async {
+                                await _sendPrompt();
+                                setSheetState(() {});
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Запитайте ШІ (${_selectedModel.label})...',
+                                hintStyle: const TextStyle(fontSize: 13),
+                                filled: true,
+                                fillColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Send or Stop button
+                          if (_thinking)
+                            IconButton.filled(
+                              style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
+                              onPressed: () {
+                                _stopGeneration();
+                                setSheetState(() {});
+                              },
+                              icon: const Icon(Icons.stop_rounded),
+                              tooltip: 'Зупинити',
+                            )
+                          else
+                            IconButton.filled(
+                              onPressed: () async {
+                                await _sendPrompt();
+                                setSheetState(() {});
+                              },
+                              icon: const Icon(Icons.arrow_upward_rounded),
+                              tooltip: 'Надіслати',
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    ActionChip(
-                      avatar: const Icon(Icons.chat_bubble_outline_rounded),
-                      label: const Text('Chat'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _openAiPanel(fullScreen: false, focusPrompt: true);
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.fullscreen_rounded),
-                      label: const Text('Full screen'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _openAiPanel(fullScreen: true, focusPrompt: true);
-                      },
-                    ),
-                    ActionChip(
-                      avatar: Icon(
-                        _listening ? Icons.mic_off_rounded : Icons.mic_rounded,
-                      ),
-                      label: Text(_listening ? 'Stop voice' : 'Voice'),
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await _togglePromptVoiceInput();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.bolt_rounded),
-                      label: const Text('AI control'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _openAiBrowserActionSheet();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.visibility_outlined),
-                      label: const Text('Context'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _appendPageContextToChat();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.photo_camera_back_outlined),
-                      label: const Text('Snapshot'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _appendPageSnapshotToChat();
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -2646,10 +3011,12 @@ $text
     ];
 
     try {
-      final String rawResult = await _aiService.complete(
+      final AiGenerationResult genResult = await _aiService.complete(
         model: _selectedModel,
         messages: messages,
+        thinkingLevel: _thinkingLevel,
       );
+      final String rawResult = genResult.text;
       final Map<String, dynamic>? payload = _extractFirstJsonObject(rawResult);
       final String executionMessage = await _executeAiBrowserAction(payload);
       if (!mounted) {
@@ -2822,8 +3189,8 @@ $bodyText
         }
         setState(() {
           _promptController.text = result.recognizedWords;
-          _promptController.selection = TextSelection.fromPosition(
-            TextPosition(offset: _promptController.text.length),
+          _promptController.selection = TextSelection.collapsed(
+            offset: _promptController.text.length,
           );
         });
       },
@@ -2914,15 +3281,16 @@ $bodyText
     ];
 
     try {
-      final String result = await _aiService.complete(
+      final AiGenerationResult result = await _aiService.complete(
         model: _selectedModel,
         messages: messages,
+        thinkingLevel: _thinkingLevel,
       );
       if (!mounted) {
         return;
       }
       setState(() {
-        _chat.add(_ChatMessage.assistant(result));
+        _chat.add(_ChatMessage.assistant(result.text));
       });
       _syncActiveAiSessionFromChat();
     } on AiRequestCanceledException {
@@ -3497,24 +3865,32 @@ $bodyText
                           unawaited(_savePreferences());
                         },
                       ),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.upload_file_rounded),
-                        title: const Text('Export backup to device'),
-                        subtitle: const Text(
-                          'Save tabs, history, AI chats, and settings',
-                        ),
-                        onTap: () async {
-                          Navigator.of(context).pop();
-                          await _exportBrowserBackupToDevice();
-                        },
+                      const Divider(height: 24),
+                      const Text(
+                        'Резервне копіювання та Оновлення',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                       ),
+                      const SizedBox(height: 8),
+                      // Prominent backup restore tile
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.download_rounded),
-                        title: const Text('Import backup from device'),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.settings_backup_restore_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        title: const Text(
+                          'Завантажити бекап (відновити все)',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         subtitle: const Text(
-                          'Restore all browser data after update',
+                          'Повернути всі вкладки, історію, закладки та чати з файлу .json',
                         ),
                         onTap: () async {
                           Navigator.of(context).pop();
@@ -3523,14 +3899,39 @@ $bodyText
                       ),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.system_update_alt_rounded),
-                        title: const Text('Download latest Android build'),
+                        leading: const Icon(Icons.upload_file_rounded),
+                        title: const Text('Створити резервну копію (експорт)'),
                         subtitle: const Text(
-                          'Open update page and install APK',
+                          'Зберегти поточний стан браузера на пристрій',
                         ),
                         onTap: () async {
                           Navigator.of(context).pop();
-                          await _newTab(AppConfig.androidUpdateUrl);
+                          await _exportBrowserBackupToDevice();
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.system_update_rounded, color: Colors.green),
+                        ),
+                        title: const Text(
+                          'Оновлення додатка (Auto-Update APK)',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: const Text(
+                          'Завантажити та встановити нову версію APK прямо в додатку',
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          showDialog<void>(
+                            context: context,
+                            builder: (BuildContext context) => const UpdateDownloadDialog(),
+                          );
                         },
                       ),
                       const SizedBox(height: 8),
@@ -4010,54 +4411,23 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-class _ThinkingMessage extends StatefulWidget {
-  const _ThinkingMessage();
+class _ThinkingMessage extends StatelessWidget {
+  const _ThinkingMessage({
+    super.key,
+    this.languageKey = 'auto',
+    this.modelName,
+  });
 
-  @override
-  State<_ThinkingMessage> createState() => _ThinkingMessageState();
-}
-
-class _ThinkingMessageState extends State<_ThinkingMessage>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    duration: const Duration(milliseconds: 900),
-    vsync: this,
-  )..repeat();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final String languageKey;
+  final String? modelName;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
     return Align(
       alignment: Alignment.centerLeft,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              RotationTransition(
-                turns: _controller,
-                child: Icon(
-                  Icons.autorenew_rounded,
-                  size: 18,
-                  color: colors.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text('Thinking...'),
-            ],
-          ),
-        ),
+      child: ThinkingIndicatorWidget(
+        languageKey: languageKey,
+        modelName: modelName,
       ),
     );
   }

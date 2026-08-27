@@ -68,17 +68,17 @@ If credentials are missing, build still works but notarization is skipped.
 - Finder integration is handled by system open/reveal flows for downloaded updates and app folder access.
 - Default browser flow tries direct registration first, then opens macOS system settings for confirmation.
 
-## Update manifest format (for siteolewer)
+## Update manifest format (for siteolewser)
 Use platform-specific downloads so mac users get mac packages:
 
 ```json
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "downloads": {
-    "win32": "Olewser-Setup-1.0.7.exe",
+    "win32": "updatesetup.exe",
     "darwin": {
-      "arm64": "Olewser-macos-1.0.7-arm64.dmg",
-      "x64": "Olewser-macos-1.0.7-x64.dmg"
+      "arm64": "Olewser-macos-1.0.8-arm64.dmg",
+      "x64": "Olewser-macos-1.0.8-x64.dmg"
     }
   }
 }
