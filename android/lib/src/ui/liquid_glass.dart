@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class LiquidGlassContainer extends StatelessWidget {
@@ -63,7 +64,7 @@ class LiquidGlassContainer extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          filter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
