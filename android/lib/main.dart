@@ -16,6 +16,7 @@ import 'src/ai/model_catalog.dart';
 import 'src/config/app_config.dart';
 import 'src/ui/dual_cube_spinner.dart';
 import 'src/ui/liquid_glass.dart';
+import 'src/ui/live_voice_bubble.dart';
 import 'src/updater/app_updater.dart';
 
 void main() {
@@ -1135,15 +1136,15 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                   ),
                 ),
               ),
-              // Sound waves icon for voice mode
+              // Sound waves icon for real Live Voice mode
               IconButton(
-                onPressed: _speechReady ? _togglePromptVoiceInput : null,
-                tooltip: _listening ? 'Зупинити голос' : 'Голосовий режим',
+                onPressed: _openLiveVoiceMode,
+                tooltip: 'Live Режим (Live Voice Mode)',
                 visualDensity: VisualDensity.compact,
                 icon: Icon(
-                  _listening ? Icons.graphic_eq_rounded : Icons.graphic_eq_rounded,
+                  Icons.graphic_eq_rounded,
                   size: 20,
-                  color: _listening ? Colors.redAccent : colors.primary,
+                  color: colors.primary,
                 ),
               ),
               const SizedBox(width: 2),
@@ -1154,11 +1155,32 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
     );
   }
 
+  void _openLiveVoiceMode() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return LiveVoiceBubbleSheet(
+          aiService: _aiService,
+          speech: _speech,
+          speechReady: _speechReady,
+          languageKey: _aiResponseLanguage.key,
+          speechLocaleId: _aiResponseLanguage.speechLocaleId,
+          pageContext: _attachPageContext ? _currentPageContextSummary() : null,
+          initialModel: AiModel.fast40,
+        );
+      },
+    );
+  }
+
   Widget _buildAiPanel({required bool fullScreen}) {
     final Size size = MediaQuery.sizeOf(context);
     final bool compact = size.width < 460;
     final double panelWidth = compact ? size.width - 12 : 470;
     final double panelHeight = size.height < 760 ? 380 : 460;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color logoColor = isDark ? Colors.white : Colors.black;
 
     return Positioned(
       top: fullScreen ? 6 : null,
@@ -1167,162 +1189,87 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
       bottom: fullScreen ? 6 : 72,
       width: fullScreen || compact ? null : panelWidth,
       height: fullScreen ? null : panelHeight,
-      child: Card(
-        elevation: 18,
-        clipBehavior: Clip.antiAlias,
-        child: Row(
+      child: LiquidGlassContainer(
+        borderRadius: fullScreen ? 20 : 24,
+        blurSigma: 24,
+        padding: EdgeInsets.zero,
+        child: Stack(
           children: <Widget>[
-            if (!_aiHistoryCollapsed)
-              Container(
-                width: compact ? 116 : 132,
-                padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                child: Column(
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        const Expanded(
-                          child: Text(
-                            'Chats',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+            // Main Chat Column (Always takes 100% width, never squeezed by history!)
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Image.asset(
+                          _aiTopIconAsset,
+                          fit: BoxFit.contain,
+                          color: logoColor,
+                          colorBlendMode: BlendMode.srcIn,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome_rounded, size: 18),
                         ),
-                        IconButton(
-                          onPressed: _thinking ? null : _newChat,
-                          icon: const Icon(Icons.add_rounded),
-                          tooltip: 'New chat',
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: _aiSessions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 4),
-                        itemBuilder: (BuildContext context, int index) {
-                          final _AiSession session = _aiSessions[index];
-                          final bool active = index == _activeAiSessionIndex;
-                          return Material(
-                            color: active
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(10),
-                              onTap: () => _switchAiSession(index),
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
-                                child: Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                      child: Text(
-                                        session.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: active
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: _aiSessions.length <= 1
-                                          ? null
-                                          : () => _deleteAiSession(index),
-                                      icon: const Icon(
-                                        Icons.close_rounded,
-                                        size: 14,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      tooltip: 'Delete',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            if (!_aiHistoryCollapsed)
-              VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: Theme.of(context).dividerColor,
-              ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: Image.asset(
-                            _aiTopIconAsset,
-                            fit: BoxFit.contain,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                            colorBlendMode: BlendMode.srcIn,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome_rounded, size: 18),
-                          ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'OleksandrAi',
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'OleksandrAi',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                      ),
+                      // History drawer toggle with sidebar icons
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _aiHistoryCollapsed = !_aiHistoryCollapsed;
+                          });
+                        },
+                        icon: Icon(
+                          _aiHistoryCollapsed
+                              ? Icons.view_sidebar_rounded
+                              : Icons.view_sidebar_outlined,
                         ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _aiHistoryCollapsed = !_aiHistoryCollapsed;
-                            });
-                          },
-                          icon: Icon(
-                            _aiHistoryCollapsed
-                                ? Icons.keyboard_double_arrow_right_rounded
-                                : Icons.keyboard_double_arrow_left_rounded,
-                          ),
-                          tooltip: _aiHistoryCollapsed
-                              ? 'Show chat list'
-                              : 'Hide chat list',
+                        tooltip: _aiHistoryCollapsed
+                            ? 'Відкрити історію чатів'
+                            : 'Сховати історію чатів',
+                      ),
+                      // Beautiful New chat icon (pencil / edit note)
+                      IconButton(
+                        onPressed: _thinking ? null : _newChat,
+                        icon: const Icon(Icons.edit_note_rounded, size: 22),
+                        tooltip: 'Новий чат',
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _aiPanelFullscreen = !_aiPanelFullscreen;
+                          });
+                        },
+                        icon: Icon(
+                          fullScreen
+                              ? Icons.fullscreen_exit_rounded
+                              : Icons.fullscreen_rounded,
                         ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _aiPanelFullscreen = !_aiPanelFullscreen;
-                            });
-                          },
-                          icon: Icon(
-                            fullScreen
-                                ? Icons.fullscreen_exit_rounded
-                                : Icons.fullscreen_rounded,
-                          ),
-                          tooltip: fullScreen
-                              ? 'Exit full screen'
-                              : 'Open full screen',
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _panelVisible = false;
-                              _aiPanelFullscreen = false;
-                            });
-                          },
-                          icon: const Icon(Icons.close),
-                          tooltip: 'Close',
-                        ),
-                      ],
-                    ),
+                        tooltip: fullScreen
+                            ? 'Вийти з повного екрана'
+                            : 'На весь екран',
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _panelVisible = false;
+                            _aiPanelFullscreen = false;
+                            _aiHistoryCollapsed = true;
+                          });
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Закрити',
+                      ),
+                    ],
+                  ),
                     Row(
                       children: <Widget>[
                         Expanded(
@@ -1386,13 +1333,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                             ),
                           ),
                         ],
-                        const SizedBox(width: 6),
-                        FilledButton.tonal(
-                          onPressed: _thinking ? null : _newChat,
-                          child: const Text('New'),
-                        ),
-                      ],
-                    ),
+                      ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: DecoratedBox(
@@ -1439,7 +1380,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                             maxLines: 6,
                             textInputAction: TextInputAction.newline,
                             decoration: const InputDecoration(
-                              hintText: 'Type prompt...',
+                              hintText: 'Введіть запит...',
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -1462,6 +1403,140 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                 ),
               ),
             ),
+
+            // Sliding Overlay History Drawer (Overlay on top of chat!)
+            if (!_aiHistoryCollapsed) ...<Widget>[
+              // Barrier to dismiss
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _aiHistoryCollapsed = true;
+                    });
+                  },
+                  child: Container(
+                    color: Colors.black.withOpacity(0.35),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: compact ? 230 : 270,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withOpacity(0.96),
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                    border: Border(
+                      right: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+                  child: Column(
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          const Icon(Icons.history_rounded, size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Історія чатів',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                            ),
+                          ),
+                          // New chat icon with pencil
+                          IconButton(
+                            onPressed: _thinking ? null : _newChat,
+                            icon: const Icon(Icons.edit_note_rounded, size: 22),
+                            tooltip: 'Новий чат',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _aiHistoryCollapsed = true;
+                              });
+                            },
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            tooltip: 'Закрити історію',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 12),
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: _aiSessions.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 4),
+                          itemBuilder: (BuildContext context, int index) {
+                            final _AiSession session = _aiSessions[index];
+                            final bool active = index == _activeAiSessionIndex;
+                            return Material(
+                              color: active
+                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(10),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () {
+                                  _switchAiSession(index);
+                                  setState(() {
+                                    _aiHistoryCollapsed = true;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
+                                  child: Row(
+                                    children: <Widget>[
+                                      const Icon(Icons.chat_bubble_outline_rounded, size: 14),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          session.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: active
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _aiSessions.length <= 1
+                                            ? null
+                                            : () => _deleteAiSession(index),
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          size: 14,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                        tooltip: 'Видалити',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1632,7 +1707,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                   child: Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
-                      initiallyExpanded: true,
+                      initiallyExpanded: false,
                       tilePadding: EdgeInsets.zero,
                       leading: SizedBox(
                         width: 24,
@@ -1649,7 +1724,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                       subtitle: Text(
-                        '${_selectedModel.label} • Чат, голос, аналіз, агент',
+                        '${_selectedModel.label} • Чат, live голос, аналіз, агент',
                         style: const TextStyle(fontSize: 12),
                       ),
                       children: <Widget>[
@@ -1659,6 +1734,14 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                             spacing: 8,
                             runSpacing: 8,
                             children: <Widget>[
+                              ActionChip(
+                                avatar: const Icon(Icons.graphic_eq_rounded, size: 16),
+                                label: const Text('Live Голос'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _openLiveVoiceMode();
+                                },
+                              ),
                               ActionChip(
                                 avatar: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
                                 label: const Text('Чат ШІ'),
@@ -1924,7 +2007,17 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                               },
                             ),
                           const Spacer(),
-                          // New chat button
+                          // Live Mode quick button
+                          IconButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _openLiveVoiceMode();
+                            },
+                            icon: const Icon(Icons.graphic_eq_rounded, size: 20, color: Colors.blueAccent),
+                            tooltip: 'Live Режим (Live Voice)',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          // New chat button with pencil / edit note
                           IconButton(
                             onPressed: _thinking
                                 ? null
@@ -1932,8 +2025,8 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                                     _newChat();
                                     setSheetState(() {});
                                   },
-                            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                            tooltip: 'Новий чат (New chat)',
+                            icon: const Icon(Icons.edit_note_rounded, size: 22),
+                            tooltip: 'Новий чат',
                             visualDensity: VisualDensity.compact,
                           ),
                           // Open full screen AI panel
@@ -1979,53 +2072,83 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // 3 Quick Action Icons Row
-                      Row(
-                        children: <Widget>[
-                          // 1. Summarize / Page Context
-                          ActionChip(
-                            avatar: const Icon(Icons.auto_stories_rounded, size: 16),
-                            label: const Text('Підсумок сайту', style: TextStyle(fontSize: 11)),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () {
-                              _appendPageContextToChat();
-                              setSheetState(() {});
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          // 2. Sound Waves Voice Mode
-                          ActionChip(
-                            avatar: Icon(
-                              _listening ? Icons.graphic_eq_rounded : Icons.graphic_eq_rounded,
-                              size: 16,
-                              color: _listening ? Colors.redAccent : null,
+                      // Action & Prompt Templates Row (Знайди, Відкрий, Підсумуй, Поясни, тощо)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: <Widget>[
+                            ActionChip(
+                              avatar: const Icon(Icons.search_rounded, size: 16),
+                              label: const Text('Знайди інформацію', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _promptController.text = 'Знайди детальну інформацію про: ';
+                                _promptController.selection = TextSelection.collapsed(offset: _promptController.text.length);
+                                _promptFocusNode.requestFocus();
+                                setSheetState(() {});
+                              },
                             ),
-                            label: Text(
-                              _listening ? 'Слухаю...' : 'Голос',
-                              style: const TextStyle(fontSize: 11),
+                            const SizedBox(width: 6),
+                            ActionChip(
+                              avatar: const Icon(Icons.open_in_browser_rounded, size: 16),
+                              label: const Text('Відкрий сайт', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _promptController.text = 'Відкрий сайт ';
+                                _promptController.selection = TextSelection.collapsed(offset: _promptController.text.length);
+                                _promptFocusNode.requestFocus();
+                                setSheetState(() {});
+                              },
                             ),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () async {
-                              await _togglePromptVoiceInput();
-                              setSheetState(() {});
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          // 3. Autonomous Agent Mode
-                          ActionChip(
-                            avatar: const Icon(Icons.psychology_rounded, size: 16),
-                            label: const Text('4.0 Agent', style: TextStyle(fontSize: 11)),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () {
-                              setSheetState(() {
-                                _selectedModel = AiModel.agent40;
-                              });
-                              setState(() {
-                                _selectedModel = AiModel.agent40;
-                              });
-                            },
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            ActionChip(
+                              avatar: const Icon(Icons.summarize_rounded, size: 16),
+                              label: const Text('Підсумок сторінки', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _appendPageContextToChat();
+                                _promptController.text = 'Підсумуй головний зміст та ключові тези цієї сторінки.';
+                                setSheetState(() {});
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            ActionChip(
+                              avatar: const Icon(Icons.lightbulb_outline_rounded, size: 16),
+                              label: const Text('Поясни просто', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _promptController.text = 'Поясни простими словами: ';
+                                _promptController.selection = TextSelection.collapsed(offset: _promptController.text.length);
+                                _promptFocusNode.requestFocus();
+                                setSheetState(() {});
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            ActionChip(
+                              avatar: const Icon(Icons.translate_rounded, size: 16),
+                              label: const Text('Переклади', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _promptController.text = 'Переклади українською мовою: ';
+                                _promptController.selection = TextSelection.collapsed(offset: _promptController.text.length);
+                                _promptFocusNode.requestFocus();
+                                setSheetState(() {});
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            ActionChip(
+                              avatar: const Icon(Icons.code_rounded, size: 16),
+                              label: const Text('Напиши код', style: TextStyle(fontSize: 11)),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () {
+                                _promptController.text = 'Напиши якісний і оптимізований код для ';
+                                _promptController.selection = TextSelection.collapsed(offset: _promptController.text.length);
+                                _promptFocusNode.requestFocus();
+                                setSheetState(() {});
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 8),
                       // Prompt Input Bar with Send Button
