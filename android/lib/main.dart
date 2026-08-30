@@ -1166,8 +1166,7 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
           speech: _speech,
           speechReady: _speechReady,
           languageKey: _aiResponseLanguage.key,
-          speechLocaleId: _aiResponseLanguage.speechLocaleId,
-          pageContext: _attachPageContext ? _currentPageContextSummary() : null,
+          speechLocaleId: _aiResponseLanguage.speechLocaleId ?? 'uk_UA',
           initialModel: AiModel.fast40,
         );
       },
@@ -1270,24 +1269,55 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                       ),
                     ],
                   ),
-                    Row(
-                      children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: DropdownButtonFormField<AiModel>(
+                          value: _selectedModel,
+                          onChanged: (AiModel? value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedModel = value;
+                            });
+                          },
+                          items: AiModel.values
+                              .map(
+                                (AiModel model) => DropdownMenuItem<AiModel>(
+                                  value: model,
+                                  child: Text(model.label),
+                                ),
+                              )
+                              .toList(),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_selectedModel.supportsThinkingConfig) ...<Widget>[
+                        const SizedBox(width: 6),
                         Expanded(
-                          child: DropdownButtonFormField<AiModel>(
-                            value: _selectedModel,
-                            onChanged: (AiModel? value) {
+                          child: DropdownButtonFormField<ThinkingLevel>(
+                            value: _thinkingLevel,
+                            onChanged: (ThinkingLevel? value) {
                               if (value == null) {
                                 return;
                               }
                               setState(() {
-                                _selectedModel = value;
+                                _thinkingLevel = value;
                               });
                             },
-                            items: AiModel.values
+                            items: ThinkingLevel.values
                                 .map(
-                                  (AiModel model) => DropdownMenuItem<AiModel>(
-                                    value: model,
-                                    child: Text(model.label),
+                                  (ThinkingLevel lvl) => DropdownMenuItem<ThinkingLevel>(
+                                    value: lvl,
+                                    child: Text(lvl.label, style: const TextStyle(fontSize: 11)),
                                   ),
                                 )
                                 .toList(),
@@ -1295,112 +1325,81 @@ class _BrowserHomePageState extends State<BrowserHomePage> {
                               border: OutlineInputBorder(),
                               isDense: true,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10,
+                                horizontal: 8,
                                 vertical: 8,
                               ),
                             ),
                           ),
                         ),
-                        if (_selectedModel.supportsThinkingConfig) ...<Widget>[
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: DropdownButtonFormField<ThinkingLevel>(
-                              value: _thinkingLevel,
-                              onChanged: (ThinkingLevel? value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() {
-                                  _thinkingLevel = value;
-                                });
-                              },
-                              items: ThinkingLevel.values
-                                  .map(
-                                    (ThinkingLevel lvl) => DropdownMenuItem<ThinkingLevel>(
-                                      value: lvl,
-                                      child: Text(lvl.label, style: const TextStyle(fontSize: 11)),
-                                    ),
-                                  )
-                                  .toList(),
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 8,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(10),
-                          itemCount: _chat.length + (_thinking ? 1 : 0),
-                          separatorBuilder: (_, int index) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (BuildContext context, int index) {
-                            if (_thinking && index == _chat.length) {
-                              return _ThinkingMessage(
-                                languageKey: _aiResponseLanguage.key,
-                                modelName: _selectedModel.label,
-                              );
-                            }
-                            final _ChatMessage message = _chat[index];
-                            return _ChatBubble(message: message);
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        IconButton.filledTonal(
-                          onPressed: _thinking ? null : _openAiToolsSheet,
-                          icon: const Icon(Icons.add_rounded),
-                          tooltip: 'AI tools',
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: TextField(
-                            controller: _promptController,
-                            focusNode: _promptFocusNode,
-                            minLines: 1,
-                            maxLines: 6,
-                            textInputAction: TextInputAction.newline,
-                            decoration: const InputDecoration(
-                              hintText: 'Введіть запит...',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filled(
-                          onPressed: _resolvePrimaryAiButtonEnabled()
-                              ? _handlePrimaryAiAction
-                              : null,
-                          icon: Icon(_resolvePrimaryAiButtonIcon()),
-                          tooltip: _resolvePrimaryAiButtonTooltip(),
-                        ),
                       ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(10),
+                        itemCount: _chat.length + (_thinking ? 1 : 0),
+                        separatorBuilder: (_, int index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (BuildContext context, int index) {
+                          if (_thinking && index == _chat.length) {
+                            return _ThinkingMessage(
+                              languageKey: _aiResponseLanguage.key,
+                              modelName: _selectedModel.label,
+                            );
+                          }
+                          final _ChatMessage message = _chat[index];
+                          return _ChatBubble(message: message);
+                        },
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      IconButton.filledTonal(
+                        onPressed: _thinking ? null : _openAiToolsSheet,
+                        icon: const Icon(Icons.add_rounded),
+                        tooltip: 'AI tools',
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: TextField(
+                          controller: _promptController,
+                          focusNode: _promptFocusNode,
+                          minLines: 1,
+                          maxLines: 6,
+                          textInputAction: TextInputAction.newline,
+                          decoration: const InputDecoration(
+                            hintText: 'Введіть запит...',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                        onPressed: _resolvePrimaryAiButtonEnabled()
+                            ? _handlePrimaryAiAction
+                            : null,
+                        icon: Icon(_resolvePrimaryAiButtonIcon()),
+                        tooltip: _resolvePrimaryAiButtonTooltip(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
